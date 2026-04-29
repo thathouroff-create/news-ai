@@ -9,15 +9,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="News AI">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3615/3615127.png">
 
     <title>Global News AI</title>
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* БЛОКИРОВКА UI GOOGLE TRANSLATE */
+        /* БЛОКИРОВКА UI GOOGLE */
         #goog-gt-tt, .goog-te-balloon-frame, .goog-te-banner-frame, .goog-te-menu-frame, .goog-te-gadget-icon, .skiptranslate, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf { 
             display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; 
         }
@@ -38,76 +36,38 @@
             --ai-bg: rgba(41, 151, 255, 0.12); --modal-bg: rgba(0,0,0,0.8);
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-color); color: var(--text-color);
-            transition: background-color 0.3s; -webkit-tap-highlight-color: transparent;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: 0.3s; -webkit-tap-highlight-color: transparent; }
 
-        header {
-            background-color: var(--header-bg); border-bottom: 1px solid var(--border-color);
-            position: sticky; top: 0; z-index: 100; padding-top: env(safe-area-inset-top);
-        }
+        /* --- КОМПАКТНАЯ ШАПКА --- */
+        header { background-color: var(--header-bg); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; padding-top: env(safe-area-inset-top); }
+        .header-top { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; max-width: 1200px; margin: 0 auto; }
+        .logo { margin: 0; font-size: 1.5rem; font-weight: 900; color: var(--accent-color); letter-spacing: -1.5px; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .currency-block { background: var(--card-bg); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #34c759; cursor: pointer; box-shadow: var(--shadow); }
+        .header-btns { display: flex; gap: 6px; }
+        .icon-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); }
+        .icon-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.5; }
 
-        .header-top {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 15px; max-width: 1200px; margin: 0 auto;
-        }
+        .tabs-container { width: 100%; border-top: 1px solid var(--border-color); padding: 10px 0; background-color: var(--header-bg); }
+        .tabs { display: flex; flex-wrap: wrap; justify-content: center; max-width: 360px; margin: 0 auto; gap: 6px; }
+        .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .tab-btn.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
 
-        .logo { margin: 0; font-size: 1.7rem; font-weight: 900; color: var(--accent-color); letter-spacing: -1px; }
-
-        .currency-block {
-            display: flex; align-items: center; background: var(--card-bg); 
-            border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 10px;
-            font-size: 0.85rem; font-weight: 700; color: #34c759; cursor: pointer; box-shadow: var(--shadow);
-        }
-
-        .icon-btn {
-            background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color);
-            border-radius: 10px; width: 38px; height: 38px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow);
-        }
-        
-        .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; }
-
-        .tabs-container { width: 100%; border-top: 1px solid var(--border-color); padding: 12px 0; background-color: var(--header-bg); }
-        .tabs { display: flex; flex-wrap: wrap; justify-content: center; padding: 0 15px; max-width: 360px; margin: 0 auto; gap: 8px; }
-
-        .tab-btn {
-            background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); 
-            border-radius: 20px; padding: 7px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
-        }
-        .tab-btn.active { background: var(--accent-color); color: #ffffff; border-color: var(--accent-color); }
-
-        .container { max-width: 800px; margin: 15px auto; padding: 0 15px; min-height: 50vh; }
-
-        .news-card {
-            background-color: var(--card-bg); border: 1px solid var(--border-color);
-            border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: var(--shadow); display: flex; flex-direction: column;
-        }
+        .container { max-width: 800px; margin: 12px auto; padding: 0 12px; }
+        .news-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 18px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
         .news-card.top-story { border: 2px solid var(--accent-color); }
-        .news-source { display: inline-block; background: rgba(128, 128, 128, 0.15); color: var(--text-color); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; margin-bottom: 8px; align-self: flex-start; }
-        .news-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
-        .news-title { font-size: 1.15rem; margin: 0 0 10px 0; line-height: 1.3; font-weight: 700; }
+        .news-source { display: inline-block; background: rgba(128, 128, 128, 0.1); color: var(--text-color); padding: 2px 6px; border-radius: 5px; font-size: 0.65rem; font-weight: 800; margin-bottom: 6px; align-self: flex-start; }
+        .news-date { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px; }
+        .news-title { font-size: 1.05rem; margin: 0 0 8px 0; line-height: 1.3; font-weight: 700; }
         
-        .ai-summary { 
-            display: none; background: var(--ai-bg); padding: 15px; border-radius: 14px; 
-            margin: 10px 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-color);
-            border-left: 5px solid var(--accent-color);
-        }
-
-        .ai-btn {
-            background: none; border: 1.5px solid var(--accent-color); color: var(--accent-color);
-            padding: 8px 16px; border-radius: 22px; font-size: 0.8rem; font-weight: 700;
-            cursor: pointer; margin-top: 5px; align-self: flex-start; transition: 0.2s;
-        }
-        .ai-btn.loading { opacity: 0.5; pointer-events: none; }
-        .news-link { text-decoration: none; color: var(--accent-color); font-weight: 700; font-size: 0.85rem; align-self: flex-end; margin-top: 10px; }
+        .ai-summary { display: none; background: var(--ai-bg); padding: 12px; border-radius: 12px; margin: 8px 0; font-size: 0.9rem; line-height: 1.5; color: var(--text-color); border-left: 4px solid var(--accent-color); }
+        .ai-btn { background: none; border: 1.5px solid var(--accent-color); color: var(--accent-color); padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; align-self: flex-start; margin-top: 4px; }
+        .news-link { text-decoration: none; color: var(--accent-color); font-weight: 700; font-size: 0.8rem; align-self: flex-end; margin-top: 8px; }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: var(--modal-bg); z-index: 1000; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; }
 
-        .skeleton { background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-color) 50%, var(--border-color) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 10px; min-height: 100px; margin-bottom: 15px;}
+        .skeleton { background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-color) 50%, var(--border-color) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 10px; min-height: 100px; margin-bottom: 12px;}
         @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
@@ -116,14 +76,16 @@
     <header>
         <div class="header-top">
             <h1 class="logo" translate="no">News</h1>
-            <div class="header-controls" translate="no">
+            <div class="header-right">
                 <div class="currency-block" onclick="openChartModal()">
                     <span id="rates">$ --.- € --.-</span>
                 </div>
-                <button class="icon-btn" onclick="forceRefresh()" title="Обновить">
-                    <svg viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                </button>
-                <button class="icon-btn" onclick="toggleTheme()" id="t-icon">🌙</button>
+                <div class="header-btns">
+                    <button class="icon-btn" onclick="forceRefresh()" title="Обновить">
+                        <svg viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    </button>
+                    <button class="icon-btn" onclick="toggleTheme()" id="t-icon">🌙</button>
+                </div>
             </div>
         </div>
         <div class="tabs-container" translate="no">
@@ -143,7 +105,7 @@
 
     <div class="modal-overlay" id="chartModal" onclick="this.style.display='none'">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <h3 translate="no" style="margin:0 0 15px 0; font-size: 1.1rem; text-align: center;">Курс валют ЦБ РФ (7 дней)</h3>
+            <h3 translate="no" style="margin:0 0 15px 0; font-size: 1rem; text-align: center;">Курс валют ЦБ (7 дней)</h3>
             <canvas id="currencyChart"></canvas>
         </div>
     </div>
@@ -151,168 +113,114 @@
     <div id="google_translate_element" style="display:none;"></div>
 
     <script>
-        // КЛЮЧ БУДЕТ ЗАМЕНЕН ПРИ ДЕПЛОЕ ЧЕРЕЗ GITHUB ACTIONS
+        // Твой метод PWA через Blob (БЕЗ ФАЙЛОВ)
+        const manifest = { "name": "Global News AI", "short_name": "News AI", "start_url": "news.html", "display": "standalone", "background_color": "#000000", "theme_color": "#000000", "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3615/3615127.png", "sizes": "512x512", "type": "image/png" }] };
+        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        document.querySelector('head').innerHTML += `<link rel="manifest" href="${URL.createObjectURL(blob)}">`;
+
+        // Ключ и API
         const GEMINI_KEY = "REPLACE_WITH_GEMINI_KEY"; 
         const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
-        
         let chartInstance = null;
+        const vibe = (u = false) => { try { if(navigator.vibrate && u) navigator.vibrate(40); } catch(e) {} };
 
-        const vibe = (active = false) => { 
-            try { if(navigator.vibrate && active) navigator.vibrate(40); } catch(e) {} 
-        };
-
-        // --- УЛУЧШЕННЫЙ АНАЛИЗ СТАТЬИ ---
-        async function getAISummary(cardId, articleUrl, rssDescription) {
+        // --- AI АНАЛИЗ ---
+        async function getAISummary(cardId, articleUrl, rssDesc) {
             vibe(true);
             const card = document.getElementById(cardId);
             const btn = card.querySelector('.ai-btn');
             const box = card.querySelector('.ai-summary');
-            
-            btn.innerText = "Читаю статью...";
-            btn.classList.add('loading');
+            btn.innerText = "Читаю..."; btn.classList.add('loading');
 
             try {
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(articleUrl)}`;
-                const responseHTML = await fetch(proxyUrl);
-                const htmlText = await responseHTML.text();
-                
-                if (htmlText.includes("Cloudflare") || htmlText.includes("Ray ID")) throw new Error("Blocked by Cloudflare");
+                const pUrl = `https://corsproxy.io/?${encodeURIComponent(articleUrl)}`;
+                const res = await fetch(pUrl);
+                const html = await res.text();
+                if (html.includes("Cloudflare")) throw new Error("Blocked");
 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, "text/html");
-                let paragraphs = doc.querySelectorAll('article p, main p, .article__body p, p');
-                
-                let textToAnalyze = Array.from(paragraphs)
-                    .map(p => p.innerText.trim())
-                    .filter(t => t.length > 50)
-                    .join(' ')
-                    .substring(0, 7000);
+                const doc = new DOMParser().parseFromString(html, "text/html");
+                let text = Array.from(doc.querySelectorAll('article p, p')).map(p => p.innerText.trim()).filter(t => t.length > 50).join(' ').substring(0, 7000);
+                if (text.length < 300) throw new Error("Short");
 
-                if (textToAnalyze.length < 300) throw new Error("Short Content");
-
-                btn.innerText = "Gemini 3 анализирует...";
-                await callGemini(btn, box, textToAnalyze, "Сделай подробный пересказ новости на русском (2-3 предложения):");
-
+                btn.innerText = "Gemini 3...";
+                await callGemini(btn, box, text, "Подробный пересказ новости на русском (2-3 предложения):");
             } catch (e) {
-                console.warn("Скрейпинг не удался:", e.message);
                 const title = card.querySelector('.news-title').innerText;
-                await callGemini(btn, box, `${title}. ${rssDescription}`, "Кратко перескажи новость на русском:");
+                await callGemini(btn, box, `${title}. ${rssDesc}`, "Кратко перескажи новость на русском:");
             }
         }
 
-        async function callGemini(btn, displayBox, content, instruction) {
+        async function callGemini(btn, box, content, prompt) {
             try {
-                const response = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `${instruction} ${content}` }] }] })
+                const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `${prompt} ${content}` }] }] })
                 });
-
-                const result = await response.json();
-
-                if (result.error) throw new Error(result.error.message);
-
-                if (result.candidates && result.candidates[0].content) {
-                    displayBox.innerText = result.candidates[0].content.parts[0].text.trim();
-                    displayBox.style.display = "block";
-                    btn.style.display = "none";
-                } else {
-                    throw new Error("AI вернул пустой ответ");
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message);
+                if (data.candidates && data.candidates[0].content) {
+                    box.innerText = data.candidates[0].content.parts[0].text.trim();
+                    box.style.display = "block"; btn.style.display = "none";
                 }
             } catch (err) {
-                // ВЫВОД В КОНСОЛЬ КАК ТЫ ПРОСИЛ
-                console.error("Gemini 3 Error:", err);
+                console.error("AI Error:", err);
                 btn.classList.remove('loading');
-                
-                // ВЫВОД НА UI
-                if (err.message.includes("quota")) btn.innerText = "Лимит запросов";
-                else if (err.message.includes("API key")) btn.innerText = "Ошибка ключа";
-                else btn.innerText = "Ошибка анализа";
-
+                btn.innerText = err.message.includes("quota") ? "Лимит исчерпан" : "Ошибка анализа";
                 setTimeout(() => { if(btn.style.display !== "none") btn.innerText = "✨ AI Пересказ"; }, 4000);
             }
         }
 
-        // --- ВАЛЮТЫ И ГРАФИК (7 ДНЕЙ) ---
+        // --- ВАЛЮТЫ И НОВОСТИ ---
         async function fetchRates() {
             try {
                 const res = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
-                const data = await res.json();
-                document.getElementById('rates').innerHTML = `<span style="color:#34c759">$ ${data.Valute.USD.Value.toFixed(1)}</span> <span style="color:#ff3b30">€ ${data.Valute.EUR.Value.toFixed(1)}</span>`;
+                const d = await res.json();
+                document.getElementById('rates').innerHTML = `<span style="color:#34c759">$ ${d.Valute.USD.Value.toFixed(1)}</span> <span style="color:#ff3b30">€ ${d.Valute.EUR.Value.toFixed(1)}</span>`;
             } catch (e) {}
         }
 
         async function openChartModal() {
-            vibe(true);
-            document.getElementById('chartModal').style.display = 'flex';
+            vibe(true); document.getElementById('chartModal').style.display = 'flex';
             if (chartInstance) chartInstance.destroy();
-
-            const dates = [], usdData = [], eurData = [];
+            const dates = [], usd = [], eur = [];
             let url = 'https://www.cbr-xml-daily.ru/daily_json.js';
-
             try {
                 for (let i = 0; i < 7; i++) {
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    dates.unshift(new Date(data.Date).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit'}));
-                    usdData.unshift(data.Valute.USD.Value);
-                    eurData.unshift(data.Valute.EUR.Value);
-                    url = 'https:' + data.PreviousURL;
+                    const r = await fetch(url); const d = await r.json();
+                    dates.unshift(new Date(d.Date).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'}));
+                    usd.unshift(d.Valute.USD.Value); eur.unshift(d.Valute.EUR.Value);
+                    url = 'https:' + d.PreviousURL;
                 }
-
-                const ctx = document.getElementById('currencyChart').getContext('2d');
-                chartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: dates,
-                        datasets: [
-                            { label: 'USD', data: usdData, borderColor: '#34c759', tension: 0.3, borderWidth: 3 },
-                            { label: 'EUR', data: eurData, borderColor: '#ff3b30', tension: 0.3, borderWidth: 3 }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        interaction: { intersect: false, mode: 'index' },
-                        plugins: { legend: { labels: { color: '#888' } } },
-                        scales: { x: { ticks: { color: '#888' } }, y: { ticks: { color: '#888' } } }
-                    }
+                chartInstance = new Chart(document.getElementById('currencyChart').getContext('2d'), {
+                    type: 'line', data: { labels: dates, datasets: [{ label: 'USD', data: usd, borderColor: '#34c759', tension: 0.3 }, { label: 'EUR', data: eur, borderColor: '#ff3b30', tension: 0.3 }] },
+                    options: { responsive: true, plugins: { legend: { labels: { color: '#888' } } }, scales: { x: { ticks: { color: '#888' } }, y: { ticks: { color: '#888' } } } }
                 });
             } catch (e) {}
         }
 
         async function loadNews(topic, btn) {
-            if(btn) vibe(true);
-            currentTopic = topic;
+            if(btn) vibe(true); currentTopic = topic;
             if(btn) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-
             const cached = localStorage.getItem('nCache_' + topic);
-            if (cached) {
-                const p = JSON.parse(cached);
-                if (Date.now() - p.t < 15 * 60 * 1000) { render(p.d, topic, p.t); return; }
-            }
-
+            if (cached) { const p = JSON.parse(cached); if (Date.now() - p.t < 900000) { render(p.d, topic, p.t); return; } }
             document.getElementById('news-grid').innerHTML = Array(3).fill(0).map(() => `<div class="skeleton"></div>`).join('');
             try {
                 const rssMap = { WORLD: 'news/world', SCIENCE: 'news/science_and_environment', POLITICS: 'news/politics', BUSINESS: 'news/business', TECHNOLOGY: 'news/technology' };
                 const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://feeds.bbci.co.uk/${rssMap[topic]}/rss.xml`)}`);
                 const data = await res.json();
-                if(data.status === 'ok') {
-                    localStorage.setItem('nCache_' + topic, JSON.stringify({d: data.items.slice(0, 10), t: Date.now()}));
-                    render(data.items.slice(0, 10), topic, Date.now());
-                }
-            } catch (e) { document.getElementById('news-grid').innerHTML = '<div style="text-align:center; padding:40px;">Ошибка сети.</div>'; }
+                if(data.status === 'ok') { localStorage.setItem('nCache_' + topic, JSON.stringify({d: data.items.slice(0,10), t: Date.now()})); render(data.items.slice(0,10), topic, Date.now()); }
+            } catch (e) { document.getElementById('news-grid').innerHTML = 'Ошибка сети.'; }
         }
 
-        function render(items, source, ts) {
-            const grid = document.getElementById('news-grid');
+        function render(items, src, ts) {
             const timeAgo = Math.floor((Date.now() - ts) / 60000);
-            grid.innerHTML = items.map((item, i) => {
+            document.getElementById('news-grid').innerHTML = items.map((item, i) => {
                 const cardId = `news-${Math.random().toString(36).substr(2, 9)}`;
                 const cleanDesc = (item.description || "").replace(/<[^>]*>/g, '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 return `
                 <div class="news-card ${i === 0 ? 'top-story' : ''}" id="${cardId}">
-                    <div class="news-source" translate="no">BBC ${source}</div>
-                    <div class="news-date" translate="no">${new Date(item.pubDate).toLocaleString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})} <span style="opacity:0.5">⏱ ${timeAgo < 1 ? 'только что' : timeAgo + ' мин. назад'}</span></div>
+                    <div class="news-source" translate="no">BBC ${src}</div>
+                    <div class="news-date" translate="no">${new Date(item.pubDate).toLocaleString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})} <span style="opacity:0.5">⏱ ${timeAgo < 1 ? 'только что' : timeAgo + ' мин'}</span></div>
                     <h3 class="news-title">${item.title}</h3>
                     <div class="ai-summary"></div>
                     <button class="ai-btn" translate="no" onclick="getAISummary('${cardId}', '${item.link}', '${cleanDesc}')">✨ AI Пересказ</button>
@@ -323,7 +231,7 @@
 
         function forceRefresh() { localStorage.removeItem('nCache_' + currentTopic); loadNews(currentTopic, document.querySelector('.tab-btn.active')); }
         function toggleTheme() { vibe(true); document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); document.getElementById('t-icon').textContent = document.body.classList.contains('dark-mode') ? '🌙' : '☀️'; }
-
+        
         document.cookie = "googtrans=/en/ru; path=/;";
         window.googleTranslateElementInit = () => { new google.translate.TranslateElement({ pageLanguage: 'en', includedLanguages: 'ru', autoDisplay: false }, 'google_translate_element'); };
         
