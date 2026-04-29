@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="News AI">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3615/3615127.png">
 
     <title>Global News AI</title>
@@ -42,8 +43,14 @@
         header { background-color: var(--header-bg); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; padding-top: env(safe-area-inset-top); }
         .header-top { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; max-width: 1200px; margin: 0 auto; }
         .logo { margin: 0; font-size: 1.5rem; font-weight: 900; color: var(--accent-color); letter-spacing: -1.5px; }
+        
+        /* Правый блок: валюта сверху, кнопки снизу */
         .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-        .currency-block { background: var(--card-bg); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #34c759; cursor: pointer; box-shadow: var(--shadow); }
+        .currency-block { 
+            background: var(--card-bg); border: 1px solid var(--border-color); 
+            padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; 
+            cursor: pointer; box-shadow: var(--shadow); white-space: nowrap;
+        }
         .header-btns { display: flex; gap: 6px; }
         .icon-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); }
         .icon-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.5; }
@@ -78,7 +85,7 @@
             <h1 class="logo" translate="no">News</h1>
             <div class="header-right">
                 <div class="currency-block" onclick="openChartModal()">
-                    <span id="rates">$ --.- € --.-</span>
+                    <span id="rates" translate="no">$ --.- € --.-</span>
                 </div>
                 <div class="header-btns">
                     <button class="icon-btn" onclick="forceRefresh()" title="Обновить">
@@ -113,12 +120,20 @@
     <div id="google_translate_element" style="display:none;"></div>
 
     <script>
-        // Твой метод PWA через Blob (БЕЗ ФАЙЛОВ)
-        const manifest = { "name": "Global News AI", "short_name": "News AI", "start_url": "news.html", "display": "standalone", "background_color": "#000000", "theme_color": "#000000", "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3615/3615127.png", "sizes": "512x512", "type": "image/png" }] };
+        // PWA ЧЕРЕЗ BLOB (БЕЗ ЛИШНИХ ФАЙЛОВ) - ИСПРАВЛЕН START_URL
+        const manifest = { 
+            "name": "Global News AI", 
+            "short_name": "News AI", 
+            "start_url": "index.html", 
+            "display": "standalone", 
+            "background_color": "#000000", 
+            "theme_color": "#000000", 
+            "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3615/3615127.png", "sizes": "512x512", "type": "image/png" }] 
+        };
         const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         document.querySelector('head').innerHTML += `<link rel="manifest" href="${URL.createObjectURL(blob)}">`;
 
-        // Ключ и API
+        // КЛЮЧ И API
         const GEMINI_KEY = "REPLACE_WITH_GEMINI_KEY"; 
         const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
         let chartInstance = null;
@@ -170,12 +185,16 @@
             }
         }
 
-        // --- ВАЛЮТЫ И НОВОСТИ ---
+        // --- ВАЛЮТЫ (ФИКС ПЕРЕВОДЧИКА) ---
         async function fetchRates() {
             try {
                 const res = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
                 const d = await res.json();
-                document.getElementById('rates').innerHTML = `<span style="color:#34c759">$ ${d.Valute.USD.Value.toFixed(1)}</span> <span style="color:#ff3b30">€ ${d.Valute.EUR.Value.toFixed(1)}</span>`;
+                // Добавляем translate="no" прямо в значения
+                document.getElementById('rates').innerHTML = `
+                    <span translate="no" style="color:#34c759">$ ${d.Valute.USD.Value.toFixed(1)}</span> 
+                    <span translate="no" style="color:#ff3b30">€ ${d.Valute.EUR.Value.toFixed(1)}</span>
+                `;
             } catch (e) {}
         }
 
