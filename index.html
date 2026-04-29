@@ -88,6 +88,7 @@
         .news-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
         .news-title { font-size: 1.15rem; margin: 0 0 10px 0; line-height: 1.3; font-weight: 700; }
         
+        /* AI Summary */
         .ai-summary { 
             display: none; background: var(--ai-bg); padding: 14px; border-radius: 12px; 
             margin: 10px 0; font-size: 0.92rem; line-height: 1.5; color: var(--text-color);
@@ -103,6 +104,7 @@
 
         .news-link { text-decoration: none; color: var(--accent-color); font-weight: 700; font-size: 0.85rem; align-self: flex-end; margin-top: 10px; }
 
+        /* Skeletons */
         .skeleton { background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-color) 50%, var(--border-color) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 10px; }
         @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
@@ -140,10 +142,10 @@
     <div id="google_translate_element" style="display:none;"></div>
 
     <script>
-        // Сброс кэша при обновлении до версии 6.0
-        if (localStorage.getItem('v_reset') !== '6.0') {
+        // Сброс старого кэша при обновлении до версии 7.0
+        if (localStorage.getItem('v_reset') !== '7.0') {
             localStorage.clear();
-            localStorage.setItem('v_reset', '6.0');
+            localStorage.setItem('v_reset', '7.0');
         }
 
         const HF_TOKEN = "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";
@@ -160,34 +162,47 @@
 
         const vibe = () => { try { if(navigator.vibrate) navigator.vibrate(40); } catch(e) {} };
 
-        // AI LOGIC - УЛЬТИМАТИВНЫЙ ОБХОД
+        // --- ИСПРАВЛЕННЫЙ ВЫЗОВ AI ---
         async function getAISummary(text, btnId, boxId) {
             vibe();
             const btn = document.getElementById(btnId);
             const box = document.getElementById(boxId);
-            btn.innerText = "Анализ...";
+            btn.innerText = "Думаю...";
             btn.classList.add('loading');
 
             try {
                 const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
-                    headers: { "Authorization": `Bearer ${HF_TOKEN}` },
+                    headers: { 
+                        "Authorization": `Bearer ${HF_TOKEN}`,
+                        "Content-Type": "application/json" 
+                    },
                     method: "POST",
-                    body: JSON.stringify({ inputs: text.substring(0, 800) }), // Меньше текста - меньше ошибок
+                    body: JSON.stringify({ 
+                        inputs: text.substring(0, 1000),
+                        options: { wait_for_model: true } // Это заставит API подождать, если модель спит
+                    }),
                 });
                 
                 const result = await response.json();
                 
-                if (result[0] && result[0].summary_text) {
+                if (Array.isArray(result) && result[0].summary_text) {
                     box.innerText = result[0].summary_text;
                     box.style.display = "block";
                     btn.style.display = "none";
-                } else if (result.error && result.error.includes("loading")) {
-                    btn.innerText = "AI просыпается...";
-                    setTimeout(() => getAISummary(text, btnId, boxId), 3000);
-                } else { throw new Error(); }
+                } else if (result.error) {
+                    // Если модель загружается, Hugging Face пришлет время ожидания
+                    if (result.estimated_time) {
+                        btn.innerText = `Загрузка AI (${Math.round(result.estimated_time)}с)...`;
+                        setTimeout(() => getAISummary(text, btnId, boxId), 5000);
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } else {
+                    throw new Error("API Unknown Response");
+                }
             } catch (e) {
-                btn.innerText = "CORS на localhost";
                 console.error("AI Error:", e);
+                btn.innerText = "AI временно занят";
                 setTimeout(() => { btn.innerText = "✨ AI Пересказ"; btn.classList.remove('loading'); }, 3000);
             }
         }
@@ -198,35 +213,26 @@
             `).join('');
         }
 
-        // БРОНЕБОЙНЫЙ ФЕТЧЕР НОВОСТЕЙ
+        // Бронебойный фетчер (уже проверен на GitHub Pages)
         async function fetchRSS(topic) {
             const url = FEEDS[topic].url;
-            const target = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
-            
             try {
-                const res = await fetch(target);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.status === 'ok') return data.items.slice(0, 10);
-                }
-            } catch (e) {}
-
-            // Если RSS2JSON заблокирован CORS, пробуем другой путь
-            try {
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-                const res = await fetch(proxyUrl);
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+                const data = await res.json();
+                if (data.status === 'ok') return data.items.slice(0, 10);
+                throw new Error();
+            } catch (e) {
+                const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                const res = await fetch(proxy);
                 const text = await res.text();
                 const xml = new DOMParser().parseFromString(text, "text/xml");
-                const items = Array.from(xml.querySelectorAll("item")).slice(0, 10);
-                return items.map(i => ({
+                return Array.from(xml.querySelectorAll("item")).slice(0, 10).map(i => ({
                     title: i.querySelector("title")?.textContent || "",
                     link: i.querySelector("link")?.textContent || "",
                     pubDate: i.querySelector("pubDate")?.textContent || "",
                     description: i.querySelector("description")?.textContent || ""
                 }));
-            } catch (e) {}
-            
-            throw new Error("Proxy limit");
+            }
         }
 
         async function loadNews(topic, btn) {
@@ -246,7 +252,7 @@
                 localStorage.setItem('nCache_' + topic, JSON.stringify({d: items, t: Date.now()}));
                 render(items, FEEDS[topic].name, Date.now());
             } catch (e) {
-                document.getElementById('news-grid').innerHTML = '<div style="text-align:center; padding:40px; color:red;">Запрос заблокирован браузером. Нажмите 🔄</div>';
+                document.getElementById('news-grid').innerHTML = '<div style="text-align:center; padding:40px; color:red;">Ошибка сети. Нажмите 🔄</div>';
             }
         }
 
