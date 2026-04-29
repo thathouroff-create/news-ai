@@ -1,0 +1,27 @@
+name: Deploy News AI
+
+on:
+  push:
+    branches: ["main"] # Если твоя ветка называется master, замени main на master
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Inject API Key
+        run: |
+          # Заменяем заглушку REPLACE_WITH_GEMINI_KEY на секрет из настроек репозитория
+          # Используем sed для поиска и замены текста в файле news.html
+          sed -i "s/REPLACE_WITH_GEMINI_KEY/${{ secrets.GEMINI_API_KEY }}/g" news.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: .
+          branch: gh-pages # GitHub Pages будет брать файлы из этой ветки
