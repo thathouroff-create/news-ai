@@ -1,0 +1,24 @@
+name: Deploy News App
+
+on:
+  push:
+    branches: ["main"] # Укажи свою главную ветку (main или master)
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Inject API Key
+        run: |
+          # Заменяем заглушку в файле на реальный секрет из настроек
+          sed -i "s/REPLACE_WITH_GEMINI_KEY/${{ secrets.GEMINI_API_KEY }}/g" news.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: . # Папка, где лежит твой index.html или news.html
+          branch: gh-pages # Ветка для публикации
+
