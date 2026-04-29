@@ -5,17 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="google" content="notranslate">
     <meta name="theme-color" content="#000000">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="News AI">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3615/3615127.png">
+
     <title>Global News AI</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* --- УЛЬТИМАТИВНЫЙ БЛОК ПЕРЕВОДЧИКА --- */
-        #goog-gt-tt, .goog-te-balloon-frame, .goog-te-banner-frame, 
-        .goog-te-menu-frame, .goog-te-menu2, .goog-te-gadget-simple, 
-        .goog-te-gadget-icon, .skiptranslate, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, 
-        .goog-te-spinner-pos, .goog-te-gadget { 
+        /* БЛОКИРОВКА UI GOOGLE TRANSLATE */
+        #goog-gt-tt, .goog-te-balloon-frame, .goog-te-banner-frame, .goog-te-menu-frame, .goog-te-gadget-icon, .skiptranslate, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf { 
             display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; 
         }
         body { top: 0 !important; position: relative !important; margin: 0 !important; padding: 0 !important; }
@@ -25,16 +28,14 @@
             --bg-color: #f4f6f8; --text-color: #1d1d1f; --text-muted: #86868b;
             --card-bg: #ffffff; --header-bg: #ffffff; --accent-color: #0066cc;
             --border-color: #d2d2d7; --shadow: 0 4px 12px rgba(0,0,0,0.05);
-            --ai-bg: rgba(0, 102, 204, 0.08);
-            --modal-bg: rgba(0,0,0,0.4);
+            --ai-bg: rgba(0, 102, 204, 0.08); --modal-bg: rgba(0,0,0,0.4);
         }
 
         body.dark-mode {
             --bg-color: #000000; --text-color: #f5f5f7; --text-muted: #86868b;
             --card-bg: #1c1c1e; --header-bg: #1c1c1e; --accent-color: #2997ff;
             --border-color: #38383a; --shadow: 0 4px 12px rgba(0,0,0,0.5);
-            --ai-bg: rgba(41, 151, 255, 0.12);
-            --modal-bg: rgba(0,0,0,0.8);
+            --ai-bg: rgba(41, 151, 255, 0.12); --modal-bg: rgba(0,0,0,0.8);
         }
 
         body {
@@ -55,13 +56,10 @@
 
         .logo { margin: 0; font-size: 1.7rem; font-weight: 900; color: var(--accent-color); letter-spacing: -1px; }
 
-        .header-controls { display: flex; gap: 8px; align-items: center; }
-
         .currency-block {
             display: flex; align-items: center; background: var(--card-bg); 
             border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 10px;
-            font-size: 0.85rem; font-weight: 700; color: #34c759; box-shadow: var(--shadow);
-            cursor: pointer;
+            font-size: 0.85rem; font-weight: 700; color: #34c759; cursor: pointer; box-shadow: var(--shadow);
         }
 
         .icon-btn {
@@ -70,15 +68,14 @@
             display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow);
         }
         
-        .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+        .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; }
 
-        /* Вкладки 3+2 */
         .tabs-container { width: 100%; border-top: 1px solid var(--border-color); padding: 12px 0; background-color: var(--header-bg); }
         .tabs { display: flex; flex-wrap: wrap; justify-content: center; padding: 0 15px; max-width: 360px; margin: 0 auto; gap: 8px; }
 
         .tab-btn {
             background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); 
-            border-radius: 20px; padding: 7px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: 0.2s;
+            border-radius: 20px; padding: 7px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
         }
         .tab-btn.active { background: var(--accent-color); color: #ffffff; border-color: var(--accent-color); }
 
@@ -107,16 +104,8 @@
         .ai-btn.loading { opacity: 0.5; pointer-events: none; }
         .news-link { text-decoration: none; color: var(--accent-color); font-weight: 700; font-size: 0.85rem; align-self: flex-end; margin-top: 10px; }
 
-        /* МОДАЛЬНОЕ ОКНО */
-        .modal-overlay { 
-            display: none; position: fixed; inset: 0; background: var(--modal-bg); 
-            z-index: 1000; justify-content: center; align-items: center; padding: 20px;
-            backdrop-filter: blur(4px);
-        }
-        .modal-content { 
-            background: var(--card-bg); padding: 25px; border-radius: 24px; 
-            width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: var(--modal-bg); z-index: 1000; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
 
         .skeleton { background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-color) 50%, var(--border-color) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 10px; min-height: 100px; margin-bottom: 15px;}
         @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -162,8 +151,8 @@
     <div id="google_translate_element" style="display:none;"></div>
 
     <script>
-        // КЛЮЧ БУДЕТ ПОДСТАВЛЕН ЧЕРЕЗ GITHUB ACTIONS
-        const GEMINI_KEY = "REPLACE_WITH_GEMINI_KEY";
+        // КЛЮЧ БУДЕТ ЗАМЕНЕН ПРИ ДЕПЛОЕ ЧЕРЕЗ GITHUB ACTIONS
+        const GEMINI_KEY = "REPLACE_WITH_GEMINI_KEY"; 
         const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
         
         let chartInstance = null;
@@ -172,7 +161,7 @@
             try { if(navigator.vibrate && active) navigator.vibrate(40); } catch(e) {} 
         };
 
-        // --- УМНЫЙ АНАЛИЗ С ОТОБРАЖЕНИЕМ ОШИБОК ---
+        // --- УЛУЧШЕННЫЙ АНАЛИЗ СТАТЬИ ---
         async function getAISummary(cardId, articleUrl, rssDescription) {
             vibe(true);
             const card = document.getElementById(cardId);
@@ -202,12 +191,12 @@
                 if (textToAnalyze.length < 300) throw new Error("Short Content");
 
                 btn.innerText = "Gemini 3 анализирует...";
-                await callGemini(btn, box, textToAnalyze, "Сделай подробный пересказ новости на русском (2-3 предложения) на основе текста статьи:");
+                await callGemini(btn, box, textToAnalyze, "Сделай подробный пересказ новости на русском (2-3 предложения):");
 
             } catch (e) {
-                console.warn("Скрейпинг не удался, использую RSS:", e.message);
+                console.warn("Скрейпинг не удался:", e.message);
                 const title = card.querySelector('.news-title').innerText;
-                await callGemini(btn, box, `${title}. ${rssDescription}`, "Кратко перескажи новость на русском (1-2 предложения):");
+                await callGemini(btn, box, `${title}. ${rssDescription}`, "Кратко перескажи новость на русском:");
             }
         }
 
@@ -221,38 +210,30 @@
 
                 const result = await response.json();
 
-                // Проверка ошибок от Google
                 if (result.error) throw new Error(result.error.message);
 
-                // Безопасное чтение кандидатов (Фикс TypeError)
-                if (result.candidates && result.candidates.length > 0 && 
-                    result.candidates[0].content && result.candidates[0].content.parts) {
-                    
-                    const summary = result.candidates[0].content.parts[0].text;
-                    displayBox.innerText = summary.trim();
+                if (result.candidates && result.candidates[0].content) {
+                    displayBox.innerText = result.candidates[0].content.parts[0].text.trim();
                     displayBox.style.display = "block";
                     btn.style.display = "none";
                 } else {
                     throw new Error("AI вернул пустой ответ");
                 }
             } catch (err) {
+                // ВЫВОД В КОНСОЛЬ КАК ТЫ ПРОСИЛ
                 console.error("Gemini 3 Error:", err);
                 btn.classList.remove('loading');
                 
-                // Пишем причину прямо на кнопке
-                if (err.message.includes("quota")) {
-                    btn.innerText = "Лимит запросов исчерпан";
-                } else if (err.message.includes("API key")) {
-                    btn.innerText = "Ошибка ключа";
-                } else {
-                    btn.innerText = "Ошибка анализа";
-                }
+                // ВЫВОД НА UI
+                if (err.message.includes("quota")) btn.innerText = "Лимит запросов";
+                else if (err.message.includes("API key")) btn.innerText = "Ошибка ключа";
+                else btn.innerText = "Ошибка анализа";
 
                 setTimeout(() => { if(btn.style.display !== "none") btn.innerText = "✨ AI Пересказ"; }, 4000);
             }
         }
 
-        // --- ВАЛЮТЫ И ГРАФИК ---
+        // --- ВАЛЮТЫ И ГРАФИК (7 ДНЕЙ) ---
         async function fetchRates() {
             try {
                 const res = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
@@ -264,12 +245,7 @@
         async function openChartModal() {
             vibe(true);
             document.getElementById('chartModal').style.display = 'flex';
-            
-            // Уничтожаем старый график перед созданием нового (Фикс Canvas error)
-            if (chartInstance) {
-                chartInstance.destroy();
-                chartInstance = null;
-            }
+            if (chartInstance) chartInstance.destroy();
 
             const dates = [], usdData = [], eurData = [];
             let url = 'https://www.cbr-xml-daily.ru/daily_json.js';
@@ -290,24 +266,20 @@
                     data: {
                         labels: dates,
                         datasets: [
-                            { label: 'USD', data: usdData, borderColor: '#34c759', tension: 0.3, borderWidth: 3, pointRadius: 4 },
-                            { label: 'EUR', data: eurData, borderColor: '#ff3b30', tension: 0.3, borderWidth: 3, pointRadius: 4 }
+                            { label: 'USD', data: usdData, borderColor: '#34c759', tension: 0.3, borderWidth: 3 },
+                            { label: 'EUR', data: eurData, borderColor: '#ff3b30', tension: 0.3, borderWidth: 3 }
                         ]
                     },
                     options: {
                         responsive: true,
                         interaction: { intersect: false, mode: 'index' },
-                        plugins: { legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text-color') } } },
-                        scales: { 
-                            x: { ticks: { color: '#888' }, grid: { display: false } },
-                            y: { ticks: { color: '#888' }, grid: { color: 'rgba(128,128,128,0.1)' } }
-                        }
+                        plugins: { legend: { labels: { color: '#888' } } },
+                        scales: { x: { ticks: { color: '#888' } }, y: { ticks: { color: '#888' } } }
                     }
                 });
-            } catch (e) { console.error("Chart loading failed", e); }
+            } catch (e) {}
         }
 
-        // --- НОВОСТИ ---
         async function loadNews(topic, btn) {
             if(btn) vibe(true);
             currentTopic = topic;
@@ -349,7 +321,7 @@
             }).join('');
         }
 
-        function forceRefresh() { vibe(true); localStorage.removeItem('nCache_' + currentTopic); loadNews(currentTopic, document.querySelector('.tab-btn.active')); }
+        function forceRefresh() { localStorage.removeItem('nCache_' + currentTopic); loadNews(currentTopic, document.querySelector('.tab-btn.active')); }
         function toggleTheme() { vibe(true); document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); document.getElementById('t-icon').textContent = document.body.classList.contains('dark-mode') ? '🌙' : '☀️'; }
 
         document.cookie = "googtrans=/en/ru; path=/;";
