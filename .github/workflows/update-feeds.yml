@@ -1,0 +1,49 @@
+name: Fetch News Feeds
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Run every 30 minutes
+  repository_dispatch:
+    types: [fetch-news]
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Fetch Feeds
+        run: node fetch-feeds.js
+
+      - name: Commit data to gh-pages branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Clone gh-pages branch into a separate directory
+          git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-dir
+          
+          # Copy the generated data folder to the gh-pages directory
+          cp -r data gh-pages-dir/
+          
+          # Commit and push
+          cd gh-pages-dir
+          git add data/latest.json
+          git commit -m "Automated feed update: $(date -u)" || echo "No changes to commit"
+          git push origin gh-pages
