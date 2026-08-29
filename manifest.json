@@ -1,0 +1,66 @@
+{
+  "id": "news-ai-app",
+  "name": "Global News AI",
+  "short_name": "News AI",
+  "description": "Персональный агрегатор новостей с умным рейтингом, автопереводом и офлайн-режимом",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "lang": "ru",
+  "dir": "ltr",
+  "categories": ["news", "magazines", "productivity"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "🔥 Главные новости",
+      "short_name": "Тренды",
+      "description": "Самые важные и популярные новости",
+      "url": "index.html#hot",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "⚡ Свежая лента",
+      "short_name": "Свежее",
+      "description": "Хронологическая лента событий",
+      "url": "index.html#latest",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "⭐ Избранное",
+      "short_name": "Закладки",
+      "description": "Сохраненные статьи для чтения",
+      "url": "index.html#bookmarks",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
