@@ -2,7 +2,7 @@ name: Deploy News AI
 
 on:
   push:
-    branches: ["main"] # Убедись, что твоя основная ветка называется именно main
+    branches: ["main"]
 
 permissions:
   contents: write
@@ -14,13 +14,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Inject API Key
-        run: |
-          # Заменяем заглушку именно в index.html
-          sed -i "s/REPLACE_WITH_GEMINI_KEY/${{ secrets.GEMINI_API_KEY }}/g" index.html
-
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: .
           branch: gh-pages
+          clean-exclude: |
+            data/
