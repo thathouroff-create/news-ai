@@ -1,54 +1,44 @@
 /**
- * GLOBAL NEWS AI — Application Engine
- * Pure Vanilla JS, Zero heavy dependencies, Fast PWA, Offline Cache
+ * GLOBAL NEWS AI — Application Engine (v2.2)
+ * High-Speed Mobile-First RSS Aggregator, Zero Bloat, Offline Cache
  */
 
-// --- КОНФИГУРАЦИЯ И ИСТОЧНИКИ НОВОСТЕЙ ---
+// --- КОНФИГУРАЦИЯ ИСТОЧНИКОВ НОВОСТЕЙ ---
 const FEED_CONFIGS = {
   ALL: [
-    { name: 'РБК Главное', url: 'https://rssexport.rbc.ru/rbcnews/news/30/full.rss', lang: 'ru', weight: 1.2 },
-    { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', lang: 'en', weight: 1.1 },
-    { name: 'Habr', url: 'https://habr.com/ru/rss/best/daily/?fl=ru', lang: 'ru', weight: 1.0 },
-    { name: 'Коммерсантъ', url: 'https://www.kommersant.ru/RSS/news.xml', lang: 'ru', weight: 1.0 }
+    { name: 'РБК Главное', url: 'https://rssexport.rbc.ru/rbcnews/news/30/full.rss', lang: 'ru', weight: 1.3 },
+    { name: 'Коммерсантъ', url: 'https://www.kommersant.ru/RSS/news.xml', lang: 'ru', weight: 1.2 },
+    { name: 'Habr', url: 'https://habr.com/ru/rss/best/daily/?fl=ru', lang: 'ru', weight: 1.1 },
+    { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', lang: 'en', weight: 1.0 }
   ],
   WORLD: [
-    { name: 'РБК Мир', url: 'https://rssexport.rbc.ru/rbcnews/news/30/full.rss', lang: 'ru', weight: 1.1 },
-    { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', lang: 'en', weight: 1.2 },
-    { name: 'Euronews', url: 'https://ru.euronews.com/rss?level=theme&name=news', lang: 'ru', weight: 1.0 },
+    { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', lang: 'en', weight: 1.3 },
+    { name: 'РБК Мир', url: 'https://rssexport.rbc.ru/rbcnews/news/30/full.rss', lang: 'ru', weight: 1.2 },
     { name: 'DW News', url: 'https://rss.dw.com/rdf/rss-ru-all', lang: 'ru', weight: 1.0 }
   ],
   TECH: [
-    { name: 'Habr Лучшее', url: 'https://habr.com/ru/rss/best/daily/?fl=ru', lang: 'ru', weight: 1.2 },
-    { name: '3DNews', url: 'https://3dnews.ru/news/rss/', lang: 'ru', weight: 1.1 },
-    { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', lang: 'en', weight: 1.0 },
-    { name: 'Hacker News', url: 'https://hnrss.org/frontpage', lang: 'en', weight: 0.9 }
+    { name: 'Habr', url: 'https://habr.com/ru/rss/best/daily/?fl=ru', lang: 'ru', weight: 1.3 },
+    { name: '3DNews', url: 'https://3dnews.ru/news/rss/', lang: 'ru', weight: 1.2 }
   ],
   ECONOMY: [
-    { name: 'РБК Экономика', url: 'https://rssexport.rbc.ru/rbcnews/news/20/full.rss', lang: 'ru', weight: 1.2 },
-    { name: 'Коммерсантъ', url: 'https://www.kommersant.ru/RSS/news.xml', lang: 'ru', weight: 1.1 },
+    { name: 'Ведомости', url: 'https://www.vedomosti.ru/rss/news', lang: 'ru', weight: 1.3 },
+    { name: 'Коммерсантъ', url: 'https://www.kommersant.ru/RSS/news.xml', lang: 'ru', weight: 1.2 },
     { name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', lang: 'en', weight: 1.0 }
   ],
   SCIENCE: [
-    { name: 'Naked Science', url: 'https://naked-science.ru/feed', lang: 'ru', weight: 1.2 },
+    { name: 'Naked Science', url: 'https://naked-science.ru/feed', lang: 'ru', weight: 1.3 },
     { name: 'BBC Science', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', lang: 'en', weight: 1.1 }
   ],
   GAMES: [
-    { name: 'DTF', url: 'https://dtf.ru/rss/all', lang: 'ru', weight: 1.1 },
-    { name: 'StopGame', url: 'https://rss.stopgame.ru/rss_news.xml', lang: 'ru', weight: 1.0 }
+    { name: 'StopGame', url: 'https://rss.stopgame.ru/rss_news.xml', lang: 'ru', weight: 1.3 },
+    { name: 'Habr Geektimes', url: 'https://habr.com/ru/rss/hubs/all/', lang: 'ru', weight: 1.1 }
   ]
 };
-
-// CORS-прокси серверы для резервирования (обхода ограничений браузера)
-const PROXIES = [
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-];
 
 // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
 const state = {
   currentCategory: 'ALL',
-  currentSort: 'hot', // 'hot' (тренды), 'latest' (свежее), 'bookmarks' (избранное)
+  currentSort: 'hot', // 'hot', 'latest', 'bookmarks'
   searchQuery: '',
   newsItems: [],
   bookmarks: JSON.parse(localStorage.getItem('news_bookmarks') || '[]'),
@@ -60,8 +50,8 @@ const state = {
   historyRates: null
 };
 
-// Тактильный виброотклик для смартфонов
-function vibe(duration = 25) {
+// Тактильный виброотклик
+function vibe(duration = 20) {
   try {
     if (navigator.vibrate) navigator.vibrate(duration);
   } catch (e) {}
@@ -75,129 +65,127 @@ function showToast(message) {
   toast.className = 'toast-msg';
   toast.textContent = message;
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
+  setTimeout(() => toast.remove(), 2400);
 }
 
-// --- СЕТЕВОЙ МОДУЛЬ: ПАРСИНГ RSS ЧЕРЕЗ XML/CORS ---
-async function fetchFeedWithFallback(feedConfig) {
-  for (const getProxyUrl of PROXIES) {
-    try {
-      const proxyUrl = getProxyUrl(feedConfig.url);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-      const response = await fetch(proxyUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) continue;
-      const text = await response.text();
-
-      // Парсим XML
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(text, 'text/xml');
-      const items = parseXmlFeed(xmlDoc, feedConfig);
-
-      if (items && items.length > 0) {
-        return items;
-      }
-    } catch (err) {
-      // Пробуем следующий прокси при ошибке
-      continue;
+// --- УНИВЕРСАЛЬНЫЙ RSS ПАРСЕР С РЕЗЕРВИРОВАНИЕМ ---
+async function fetchFeed(cfg) {
+  // 1. Попытка через rss2json
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(cfg.url)}`, { signal: controller.signal });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (data && data.status === 'ok' && data.items && data.items.length > 0) {
+      return data.items.map((item) => normalizeRss2Json(item, cfg));
     }
-  }
+  } catch (e) {}
+
+  // 2. Попытка через feed2json
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`https://feed2json.org/convert?url=${encodeURIComponent(cfg.url)}`, { signal: controller.signal });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (data && data.items && data.items.length > 0) {
+      return data.items.map((item) => normalizeFeed2Json(item, cfg));
+    }
+  } catch (e) {}
+
   return [];
 }
 
-// Извлечение полей RSS / Atom
-function parseXmlFeed(xmlDoc, feedConfig) {
-  const items = [];
-  const entries = Array.from(xmlDoc.querySelectorAll('item, entry')).slice(0, 15);
-
-  for (const el of entries) {
-    try {
-      const title = el.querySelector('title')?.textContent?.trim() || 'Без заголовка';
-      let link = el.querySelector('link')?.textContent?.trim();
-      if (!link) {
-        link = el.querySelector('link')?.getAttribute('href') || '#';
-      }
-
-      // Извлечение описания
-      let description = el.querySelector('description, summary, content')?.textContent?.trim() || '';
-      
-      // Поиск изображений (enclosure, media:content, media:thumbnail или внутри HTML)
-      let imageUrl = null;
-      const enclosure = el.querySelector('enclosure[type^="image"]');
-      if (enclosure) imageUrl = enclosure.getAttribute('url');
-
-      if (!imageUrl) {
-        const mediaContent = el.querySelector('media\\:content, content');
-        if (mediaContent) imageUrl = mediaContent.getAttribute('url');
-      }
-      if (!imageUrl) {
-        const mediaThumb = el.querySelector('media\\:thumbnail, thumbnail');
-        if (mediaThumb) imageUrl = mediaThumb.getAttribute('url');
-      }
-
-      // Поиск <img> в описании
-      if (!imageUrl && description.includes('<img')) {
-        const match = description.match(/<img[^>]+src=["']([^"']+)["']/i);
-        if (match && match[1]) imageUrl = match[1];
-      }
-
-      // Очистка HTML тегов из описания
-      const cleanDesc = description
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 240);
-
-      // Дата публикации
-      const pubDateStr = el.querySelector('pubDate, published, updated, dc\\:date')?.textContent?.trim();
-      const pubDate = pubDateStr ? new Date(pubDateStr).getTime() : Date.now();
-
-      // Уникальный ID новости
-      const id = 'id_' + btoa(encodeURIComponent(link)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
-
-      items.push({
-        id,
-        title,
-        link,
-        description: cleanDesc,
-        imageUrl,
-        pubDate: isNaN(pubDate) ? Date.now() : pubDate,
-        source: feedConfig.name,
-        lang: feedConfig.lang,
-        weight: feedConfig.weight || 1.0
-      });
-    } catch (e) {
-      continue;
-    }
+// Нормализация элементов из rss2json
+function normalizeRss2Json(item, cfg) {
+  let imageUrl = null;
+  if (item.thumbnail && typeof item.thumbnail === 'string' && item.thumbnail.startsWith('http')) {
+    imageUrl = item.thumbnail;
+  } else if (item.enclosure && item.enclosure.link && item.enclosure.link.startsWith('http')) {
+    imageUrl = item.enclosure.link;
+  } else {
+    const html = (item.description || '') + ' ' + (item.content || '');
+    const m = html.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/i);
+    if (m && m[1]) imageUrl = m[1];
   }
 
-  return items;
+  const cleanDesc = cleanHtmlText(item.description || item.content || '');
+  const link = item.link || item.guid || '#';
+  const pubDate = item.pubDate ? new Date(item.pubDate).getTime() : Date.now();
+  const id = 'id_' + btoa(encodeURIComponent(link)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+
+  return {
+    id,
+    title: (item.title || 'Без названия').trim(),
+    link,
+    description: cleanDesc,
+    imageUrl,
+    pubDate: isNaN(pubDate) ? Date.now() : pubDate,
+    source: cfg.name,
+    lang: cfg.lang,
+    weight: cfg.weight || 1.0
+  };
+}
+
+// Нормализация элементов из feed2json
+function normalizeFeed2Json(item, cfg) {
+  let imageUrl = item.image || item.banner_image || null;
+  if (!imageUrl && item.summary) {
+    const m = item.summary.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/i);
+    if (m && m[1]) imageUrl = m[1];
+  }
+
+  const cleanDesc = cleanHtmlText(item.summary || item.content_text || '');
+  const link = item.url || '#';
+  const pubDate = item.date_published ? new Date(item.date_published).getTime() : Date.now();
+  const id = 'id_' + btoa(encodeURIComponent(link)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+
+  return {
+    id,
+    title: (item.title || 'Без названия').trim(),
+    link,
+    description: cleanDesc,
+    imageUrl,
+    pubDate: isNaN(pubDate) ? Date.now() : pubDate,
+    source: cfg.name,
+    lang: cfg.lang,
+    weight: cfg.weight || 1.0
+  };
+}
+
+// Очистка HTML тегов
+function cleanHtmlText(html) {
+  if (!html) return '';
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 220);
 }
 
 // --- УМНЫЙ РЕЙТИНГ НОВОСТЕЙ (SMART RANKING) ---
 function calculateHotScore(item) {
   const hoursAgo = Math.max(0.1, (Date.now() - item.pubDate) / (1000 * 60 * 60));
-  // Экспоненциальное затухание по времени: свежие новости имеют наибольший вес
   const timeDecay = 1 / Math.pow(hoursAgo + 1.2, 1.25);
-  
-  let contentWeight = item.weight || 1.0;
-  if (item.imageUrl) contentWeight *= 1.2; // Бонус за красивую обложку
-  if (item.description && item.description.length > 50) contentWeight *= 1.15; // Бонус за полноту
-
-  return contentWeight * timeDecay * 100;
+  let score = (item.weight || 1.0) * timeDecay * 100;
+  if (item.imageUrl) score *= 1.25;
+  if (item.description && item.description.length > 50) score *= 1.15;
+  return score;
 }
 
-// Форматирование относительного времени («5 мин назад»)
+// Форматирование относительного времени
 function formatRelativeTime(timestamp) {
   const diffSec = Math.floor((Date.now() - timestamp) / 1000);
   if (diffSec < 60) return 'только что';
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} мин назад`;
+  if (diffMin < 60) return `${diffMin} мин`;
   const diffHours = Math.floor(diffMin / 60);
   if (diffHours < 24) return `${diffHours} ч назад`;
   const diffDays = Math.floor(diffHours / 24);
@@ -238,13 +226,10 @@ async function handleTranslateCard(cardId, titleText, descText) {
   const btn = card.querySelector('.btn-translate');
   const titleEl = card.querySelector('.news-title');
   const descEl = card.querySelector('.news-description');
-  const transBox = card.querySelector('.translated-box');
 
   if (btn.classList.contains('active')) {
-    // Возврат оригинала
     titleEl.textContent = titleText;
-    descEl.textContent = descText;
-    transBox.style.display = 'none';
+    if (descEl) descEl.textContent = descText;
     btn.classList.remove('active');
     btn.innerHTML = '🌐 Перевести';
     return;
@@ -257,7 +242,7 @@ async function handleTranslateCard(cardId, titleText, descText) {
   ]);
 
   titleEl.textContent = transTitle;
-  if (transDesc && transDesc !== descText) {
+  if (descEl && transDesc && transDesc !== descText) {
     descEl.textContent = transDesc;
   }
   btn.classList.add('active');
@@ -267,11 +252,12 @@ async function handleTranslateCard(cardId, titleText, descText) {
 
 // --- ЗАГРУЗКА И КЭШИРОВАНИЕ ЛЕНТЫ ---
 async function loadFeed(category = 'ALL', forceRefresh = false) {
+  vibe(15);
   state.currentCategory = category;
   const feedContainer = document.getElementById('news-feed');
   const cacheKey = `feed_cache_${category}`;
 
-  // Обновляем активный чип таба
+  // Обновляем активный чип в сетке 3+3
   document.querySelectorAll('.tab-chip').forEach((chip) => {
     chip.classList.toggle('active', chip.dataset.category === category);
   });
@@ -281,7 +267,7 @@ async function loadFeed(category = 'ALL', forceRefresh = false) {
     return;
   }
 
-  // Проверка кэша (10 минут)
+  // Проверка локального кэша (10 минут)
   if (!forceRefresh) {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -296,15 +282,15 @@ async function loadFeed(category = 'ALL', forceRefresh = false) {
     }
   }
 
-  // Показываем скелетон-загрузчик
+  // Показываем скелетоны
   renderSkeletons();
 
   const configs = FEED_CONFIGS[category] || FEED_CONFIGS.ALL;
   try {
-    const results = await Promise.all(configs.map((cfg) => fetchFeedWithFallback(cfg)));
+    const results = await Promise.all(configs.map((cfg) => fetchFeed(cfg)));
     const flatItems = results.flat();
 
-    // Дедупликация по ссылке и заголовку
+    // Дедупликация
     const seen = new Set();
     const uniqueItems = [];
     for (const item of flatItems) {
@@ -316,20 +302,25 @@ async function loadFeed(category = 'ALL', forceRefresh = false) {
       }
     }
 
-    state.newsItems = uniqueItems;
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify({ items: uniqueItems, timestamp: Date.now() }));
-    } catch (e) {}
-
-    renderNewsList();
+    if (uniqueItems.length > 0) {
+      state.newsItems = uniqueItems;
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ items: uniqueItems, timestamp: Date.now() }));
+      } catch (e) {}
+      renderNewsList();
+    } else {
+      throw new Error('No items returned');
+    }
   } catch (err) {
     feedContainer.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📡</div>
-        <div class="empty-state-title">Не удалось обновить ленту</div>
-        <p style="font-size:0.85rem; margin-bottom:12px;">Проверьте интернет-соединение</p>
-        <button class="btn-install-primary" onclick="loadFeed('${category}', true)">Повторить попытку</button>
+        <div class="empty-state-title">Не удалось загрузить новости</div>
+        <p style="font-size:0.85rem; margin-bottom:12px;">Проверьте интернет-соединение или повторите попытку</p>
+        <button class="btn-install-primary" onclick="loadFeed('${category}', true)">🔄 Повторить</button>
       </div>`;
+    const statusText = document.getElementById('feed-status');
+    if (statusText) statusText.textContent = 'Ошибка сети';
   }
 }
 
@@ -340,7 +331,7 @@ function renderNewsList() {
 
   let items = [...state.newsItems];
 
-  // Фильтр по поисковому запросу
+  // Поиск
   if (state.searchQuery.trim()) {
     const q = state.searchQuery.toLowerCase();
     items = items.filter(
@@ -353,7 +344,7 @@ function renderNewsList() {
       <div class="empty-state">
         <div class="empty-state-icon">🔍</div>
         <div class="empty-state-title">Ничего не найдено</div>
-        <p style="font-size:0.85rem;">Попробуйте изменить поисковый запрос или обновить ленту</p>
+        <p style="font-size:0.85rem;">Попробуйте изменить поисковый запрос</p>
       </div>`;
     if (statusText) statusText.textContent = '0 новостей';
     return;
@@ -393,7 +384,6 @@ function renderNewsList() {
               ${cleanTitleEsc}
             </a>
             ${cleanDescEsc ? `<p class="news-description">${cleanDescEsc}</p>` : ''}
-            <div class="translated-box"></div>
           </div>
           ${item.imageUrl ? `
             <img src="${escapeHtml(item.imageUrl)}" alt="" class="news-thumbnail" loading="lazy" onerror="this.style.display='none'">
@@ -423,7 +413,7 @@ function renderNewsList() {
     .join('');
 }
 
-// Рендеринг скелетона загрузки
+// Скелетон-загрузчик
 function renderSkeletons() {
   const feedContainer = document.getElementById('news-feed');
   feedContainer.innerHTML = Array(4)
@@ -432,16 +422,15 @@ function renderSkeletons() {
       () => `
     <div class="skeleton-card">
       <div class="skeleton-line" style="width: 30%; height: 16px;"></div>
-      <div class="skeleton-line" style="width: 90%; height: 22px; margin-top: 10px;"></div>
+      <div class="skeleton-line" style="width: 90%; height: 22px; margin-top: 8px;"></div>
       <div class="skeleton-line" style="width: 70%; height: 22px;"></div>
-      <div class="skeleton-line" style="width: 100%; height: 14px; margin-top: 10px;"></div>
-      <div class="skeleton-line" style="width: 80%; height: 14px;"></div>
+      <div class="skeleton-line" style="width: 100%; height: 14px; margin-top: 8px;"></div>
     </div>`
     )
     .join('');
 }
 
-// --- ЗАКЛАДКИ (ИЗБРАННОЕ ОФЛАЙН) ---
+// --- ЗАКЛАДКИ (ИЗБРАННОЕ) ---
 function toggleBookmark(itemId) {
   vibe(20);
   const item = state.newsItems.find((i) => i.id === itemId) || state.bookmarks.find((b) => b.id === itemId);
@@ -476,7 +465,7 @@ function renderBookmarks() {
       <div class="empty-state">
         <div class="empty-state-icon">⭐</div>
         <div class="empty-state-title">Закладок пока нет</div>
-        <p style="font-size:0.85rem;">Нажмите «☆ В закладки» на любой новости, чтобы прочитать её позже даже без интернета.</p>
+        <p style="font-size:0.85rem;">Нажмите «☆ В закладки» на любой новости, чтобы сохранить её для чтения офлайн.</p>
       </div>`;
     if (statusText) statusText.textContent = '0 закладок';
     return;
@@ -490,29 +479,24 @@ function renderBookmarks() {
   renderNewsList();
 }
 
-// --- ШЕРИНГ (WEB SHARE API) ---
+// --- ШЕРИНГ ---
 async function shareArticle(title, url) {
   vibe(15);
   if (navigator.share) {
     try {
-      await navigator.share({
-        title: title,
-        text: `${title}\n`,
-        url: url
-      });
+      await navigator.share({ title, text: `${title}\n`, url });
       return;
     } catch (err) {}
   }
-  // Fallback: копирование в буфер
   try {
     await navigator.clipboard.writeText(`${title} - ${url}`);
-    showToast('Ссылка скопирована в буфер 📋');
+    showToast('Ссылка скопирована 📋');
   } catch (e) {
-    showToast('Не удалось скопировать ссылку');
+    showToast('Не удалось скопировать');
   }
 }
 
-// --- ВИДЖЕТ ВАЛЮТ И СПАРКЛАЙН ГРАФИК ---
+// --- ВИДЖЕТ ВАЛЮТ И ГРАФИК ---
 async function fetchCurrencyAndDraw() {
   try {
     const res = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
@@ -527,9 +511,7 @@ async function fetchCurrencyAndDraw() {
     if (pill) {
       pill.innerHTML = `<span class="rate-green">$ ${usd}</span> <span class="rate-red">€ ${eur}</span> <span class="rate-blue">¥ ${cny}</span>`;
     }
-  } catch (e) {
-    console.error('Rates fetch error:', e);
-  }
+  } catch (e) {}
 }
 
 async function openRatesModal() {
@@ -538,12 +520,8 @@ async function openRatesModal() {
   modal.classList.add('open');
 
   if (!state.historyRates) {
-    // Получаем историю за 7 дней
-    const dates = [];
-    const usdValues = [];
-    const eurValues = [];
+    const dates = [], usdValues = [], eurValues = [];
     let nextUrl = 'https://www.cbr-xml-daily.ru/daily_json.js';
-
     try {
       for (let i = 0; i < 7; i++) {
         const r = await fetch(nextUrl);
@@ -554,9 +532,7 @@ async function openRatesModal() {
         nextUrl = 'https:' + d.PreviousURL;
       }
       state.historyRates = { dates, usdValues, eurValues };
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) {}
   }
 
   if (state.historyRates) {
@@ -564,46 +540,31 @@ async function openRatesModal() {
   }
 }
 
-// Отрисовка ультралегкого Canvas Sparkline графика без Chart.js
 function drawCanvasChart(history) {
   const canvas = document.getElementById('sparklineCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
-
   const rect = canvas.getBoundingClientRect();
   canvas.width = rect.width * dpr;
   canvas.height = rect.height * dpr;
   ctx.scale(dpr, dpr);
 
-  const w = rect.width;
-  const h = rect.height;
+  const w = rect.width, h = rect.height;
   ctx.clearRect(0, 0, w, h);
 
-  const padding = 30;
-  const graphW = w - padding * 2;
-  const graphH = h - padding * 2;
-
+  const padding = 24, graphW = w - padding * 2, graphH = h - padding * 2;
   const usd = history.usdValues;
-  const minVal = Math.min(...usd) - 0.5;
-  const maxVal = Math.max(...usd) + 0.5;
+  const minVal = Math.min(...usd) - 0.5, maxVal = Math.max(...usd) + 0.5;
 
-  // Отрисовка сетки
   ctx.strokeStyle = 'rgba(150, 150, 150, 0.15)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 3; i++) {
     const y = padding + (graphH / 3) * i;
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(w - padding, y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(w - padding, y); ctx.stroke();
   }
 
-  // Отрисовка плавной линии USD
-  ctx.strokeStyle = '#10b981';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-
+  ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5; ctx.beginPath();
   const stepX = graphW / (usd.length - 1);
   const points = usd.map((v, i) => ({
     x: padding + i * stepX,
@@ -616,44 +577,32 @@ function drawCanvasChart(history) {
   });
   ctx.stroke();
 
-  // Отрисовка точек и дат
   ctx.fillStyle = '#10b981';
   points.forEach((p, i) => {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Подписи дат внизу
-    ctx.fillStyle = '#888888';
-    ctx.font = '10px -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(history.dates[i], p.x, h - 8);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#888888'; ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText(history.dates[i], p.x, h - 6);
     ctx.fillStyle = '#10b981';
   });
 
-  // Заполняем таблицу значений
   const tableBody = document.getElementById('rates-table-body');
   if (tableBody && state.currencyData) {
     const v = state.currencyData.Valute;
     tableBody.innerHTML = `
-      <tr><td>🇺🇸 Доллар США (USD)</td><td><b>${v.USD.Value.toFixed(2)} ₽</b></td><td>${(v.USD.Value - v.USD.Previous).toFixed(2)} ₽</td></tr>
-      <tr><td>🇪🇺 Евро (EUR)</td><td><b>${v.EUR.Value.toFixed(2)} ₽</b></td><td>${(v.EUR.Value - v.EUR.Previous).toFixed(2)} ₽</td></tr>
-      <tr><td>🇨🇳 Китайский Юань (CNY)</td><td><b>${v.CNY.Value.toFixed(2)} ₽</b></td><td>${(v.CNY.Value - v.CNY.Previous).toFixed(2)} ₽</td></tr>
+      <tr><td>🇺🇸 USD</td><td><b>${v.USD.Value.toFixed(2)} ₽</b></td><td>${(v.USD.Value - v.USD.Previous).toFixed(2)} ₽</td></tr>
+      <tr><td>🇪🇺 EUR</td><td><b>${v.EUR.Value.toFixed(2)} ₽</b></td><td>${(v.EUR.Value - v.EUR.Previous).toFixed(2)} ₽</td></tr>
+      <tr><td>🇨🇳 CNY</td><td><b>${v.CNY.Value.toFixed(2)} ₽</b></td><td>${(v.CNY.Value - v.CNY.Previous).toFixed(2)} ₽</td></tr>
     `;
   }
 }
 
-// --- ВИДЖЕТ ПОГОДЫ (OPEN-METEO БЕЗ КЛЮЧЕЙ) ---
+// --- ВИДЖЕТ ПОГОДЫ ---
 async function fetchWeather() {
   try {
-    let lat = 55.75, lon = 37.61; // По умолчанию Москва
-
-    // Попытка взять геолокацию
+    let lat = 55.75, lon = 37.61;
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          loadWeatherData(pos.coords.latitude, pos.coords.longitude);
-        },
+        (pos) => loadWeatherData(pos.coords.latitude, pos.coords.longitude),
         () => loadWeatherData(lat, lon),
         { timeout: 3000 }
       );
@@ -686,17 +635,15 @@ function getWeatherIcon(code) {
   if (code <= 67) return '🌧️';
   if (code <= 77) return '❄️';
   if (code <= 82) return '🌦️';
-  if (code <= 99) return '⛈️';
-  return '🌡️';
+  return '⛈️';
 }
 
-// --- УПРАВЛЕНИЕ ТЕМАМИ И ШРИФТАМИ ---
+// --- НАСТРОЙКИ ТЕМ И ШРИФТОВ ---
 function setTheme(themeName) {
   vibe(15);
   state.theme = themeName;
   document.body.className = `theme-${themeName}`;
   localStorage.setItem('news_theme', themeName);
-
   document.querySelectorAll('.theme-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.theme === themeName);
   });
@@ -713,7 +660,7 @@ function adjustFontScale(delta) {
   if (label) label.textContent = `${Math.round(newScale * 100)}%`;
 }
 
-// --- PWA УСТАНОВКА НА ТЕЛЕФОН ---
+// --- PWA ИНСТАЛЛЯЦИЯ ---
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   state.deferredPrompt = e;
@@ -731,8 +678,7 @@ async function triggerPwaInstall() {
     state.deferredPrompt = null;
     document.getElementById('pwa-install-banner').style.display = 'none';
   } else {
-    // Инструкция для iOS / Safari
-    alert('Чтобы установить приложение:\n1. Нажмите кнопку "Поделиться" (квадрат со стрелкой)\n2. Выберите "На экран «Домой»" 📲');
+    alert('Чтобы установить приложение:\n1. Нажмите "Поделиться" в Safari/Chrome\n2. Выберите "На экран «Домой»" 📲');
   }
 }
 
@@ -741,14 +687,13 @@ function dismissPwaBanner() {
   sessionStorage.setItem('pwa_prompt_dismissed', 'true');
 }
 
-// --- РЕГИСТРАЦИЯ SERVICE WORKER ---
+// --- SERVICE WORKER ---
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((err) => console.log('SW failed:', err));
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
 }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -769,13 +714,11 @@ function getNoun(number, one, two, five) {
   return five;
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ ПРИ ЗАПУСКЕ ---
+// --- ИНИЦИАЛИЗАЦИЯ ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Применяем тему и шрифт
   setTheme(state.theme);
   adjustFontScale(0);
 
-  // Слушатели поиска
   const searchInput = document.getElementById('search-input');
   const searchClear = document.getElementById('search-clear');
   if (searchInput) {
@@ -794,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Слушатели сортировки
+  // Переключение сортировки
   document.querySelectorAll('.sort-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       vibe(15);
@@ -809,7 +752,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Загрузка первичных данных
   fetchCurrencyAndDraw();
   fetchWeather();
   loadFeed('ALL');
