@@ -19,27 +19,27 @@ const parser = new Parser({
 
 const FEEDS = {
   ALL: [
-    { name: 'РБК',         url: 'https://rssexport.rbc.ru/rbcnews/news/30/full.rss',  lang: 'ru', w: 1.3 },
-    { name: 'Коммерсантъ',  url: 'https://www.kommersant.ru/RSS/news.xml',             lang: 'ru', w: 1.2 },
-    { name: 'Habr',         url: 'https://habr.com/ru/rss/best/daily/?fl=ru',           lang: 'ru', w: 1.1 },
-    { name: 'BBC World',    url: 'https://feeds.bbci.co.uk/news/world/rss.xml',         lang: 'en', w: 1.0 }
+    { name: 'РБК',         url: 'https://rssexport.rbc.ru/rbc/topnews.rss',            lang: 'ru', w: 1.4 },
+    { name: 'Коммерсантъ',  url: 'https://www.kommersant.ru/RSS/main.xml',             lang: 'ru', w: 1.3 },
+    { name: 'Habr',         url: 'https://habr.com/ru/rss/best/daily/?fl=ru',           lang: 'ru', w: 1.2 },
+    { name: 'BBC World',    url: 'https://feeds.bbci.co.uk/news/world/rss.xml',         lang: 'en', w: 1.1 }
   ],
   WORLD: [
     { name: 'BBC World',    url: 'https://feeds.bbci.co.uk/news/world/rss.xml',         lang: 'en', w: 1.3 },
-    { name: 'РБК',          url: 'https://rssexport.rbc.ru/rbcnews/news/30/full.rss',  lang: 'ru', w: 1.1 },
+    { name: 'РБК',          url: 'https://rssexport.rbc.ru/rbc/topnews.rss',           lang: 'ru', w: 1.2 },
     { name: 'DW',           url: 'https://rss.dw.com/rdf/rss-ru-all',                  lang: 'ru', w: 1.0 }
   ],
   TECH: [
     { name: 'Habr',         url: 'https://habr.com/ru/rss/best/daily/?fl=ru',           lang: 'ru', w: 1.3 },
-    { name: '3DNews',       url: 'https://3dnews.ru/news/rss/',                         lang: 'ru', w: 1.2 }
+    { name: '3DNews',       url: 'https://3dnews.ru/news/rss/',                         lang: 'ru', w: 1.1 }
   ],
   ECONOMY: [
-    { name: 'Ведомости',    url: 'https://www.vedomosti.ru/rss/news',                  lang: 'ru', w: 1.3 },
-    { name: 'Коммерсантъ',  url: 'https://www.kommersant.ru/RSS/news.xml',             lang: 'ru', w: 1.2 },
+    { name: 'Ведомости',    url: 'https://www.vedomosti.ru/rss/issue',                 lang: 'ru', w: 1.4 },
+    { name: 'Коммерсантъ',  url: 'https://www.kommersant.ru/RSS/main.xml',             lang: 'ru', w: 1.2 },
     { name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml',     lang: 'en', w: 1.0 }
   ],
   SCIENCE: [
-    { name: 'N+1',          url: 'https://nplus1.ru/rss',                              lang: 'ru', w: 1.3 },
+    { name: 'N+1',          url: 'https://nplus1.ru/rss/feed/main',                    lang: 'ru', w: 1.4 },
     { name: 'Naked Science', url: 'https://naked-science.ru/feed',                     lang: 'ru', w: 1.1 }
   ],
   GAMES: [
