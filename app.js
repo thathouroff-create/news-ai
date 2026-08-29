@@ -607,61 +607,87 @@ function loadCurrency() {
     }).catch(function() {});
 }
 
+state.selectedCur = 'usd';
+
 function openRatesModal() {
   vibe(15);
   document.getElementById('rates-modal').classList.add('open');
   if (!state.ratesHistory) {
-    var dates = [], usd = [];
+    var dates = [], usd = [], eur = [], cny = [];
     var u = 'https://www.cbr-xml-daily.ru/daily_json.js';
     function fetchNext(i) {
-      if (i >= 7) { state.ratesHistory = { dates: dates, usd: usd }; drawChart(state.ratesHistory); return; }
+      if (i >= 7) { 
+        state.ratesHistory = { dates: dates, usd: usd, eur: eur, cny: cny }; 
+        renderRatesModal(); 
+        return; 
+      }
       fetch(u).then(function(r) { return r.json(); }).then(function(d) {
         dates.unshift(new Date(d.Date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }));
         usd.unshift(d.Valute.USD.Value);
+        if(d.Valute.EUR) eur.unshift(d.Valute.EUR.Value); else eur.unshift(0);
+        if(d.Valute.CNY) cny.unshift(d.Valute.CNY.Value); else cny.unshift(0);
         u = 'https:' + d.PreviousURL;
         fetchNext(i + 1);
       }).catch(function() {});
     }
     fetchNext(0);
   } else {
-    drawChart(state.ratesHistory);
-  }
-  if (state.currency && state.currency.Valute) {
-    var v = state.currency.Valute;
-    var body = document.getElementById('rates-body');
-    if (body) {
-      var pairs = [['🇺🇸 USD', v.USD], ['🇪🇺 EUR', v.EUR], ['🇨🇳 CNY', v.CNY]];
-      var h = '';
-      for (var i = 0; i < pairs.length; i++) {
-        var name = pairs[i][0], c = pairs[i][1];
-        if (!c) continue;
-        var diff = c.Value - c.Previous;
-        h += '<tr><td>' + name + '</td><td><b>' + c.Value.toFixed(2) + ' ₽</b></td><td style="color:' + (diff > 0 ? 'var(--c-danger)' : 'var(--c-success)') + '">' + (diff > 0 ? '+' : '') + diff.toFixed(2) + '</td></tr>';
-      }
-      body.innerHTML = h;
-    }
+    renderRatesModal();
   }
 }
 
-function drawChart(h) {
+function renderRatesModal() {
+  var v = state.currency && state.currency.Valute ? state.currency.Valute : null;
+  if (!v) return;
+
+  var body = document.getElementById('rates-body');
+  if (body) {
+    var pairs = [['🇺🇸 USD', v.USD, 'usd'], ['🇪🇺 EUR', v.EUR, 'eur'], ['🇨🇳 CNY', v.CNY, 'cny']];
+    var h = '';
+    for (var i = 0; i < pairs.length; i++) {
+      var name = pairs[i][0], c = pairs[i][1], key = pairs[i][2];
+      if (!c) continue;
+      var diff = c.Value - c.Previous;
+      var act = (state.selectedCur === key) ? ' style="background:var(--c-surface2);cursor:pointer"' : ' style="cursor:pointer"';
+      h += '<tr' + act + ' onclick="selectCur(\'' + key + '\')"><td>' + name + '</td><td><b>' + c.Value.toFixed(2) + ' ₽</b></td><td style="color:' + (diff > 0 ? 'var(--c-danger)' : 'var(--c-success)') + '">' + (diff > 0 ? '+' : '') + diff.toFixed(2) + '</td></tr>';
+    }
+    body.innerHTML = h;
+  }
+  
+  var title = document.getElementById('chart-title');
+  if (title) title.textContent = 'Динамика ' + state.selectedCur.toUpperCase() + ' / 7 дней';
+
+  drawChart(state.ratesHistory, state.selectedCur);
+}
+
+window.selectCur = function(cur) {
+  state.selectedCur = cur;
+  vibe(10);
+  renderRatesModal();
+};
+
+function drawChart(h, cur) {
   var c = document.getElementById('sparkCanvas');
-  if (!c || !h || !h.usd || h.usd.length < 2) return;
+  var vals = h ? h[cur || 'usd'] : null;
+  if (!c || !h || !vals || vals.length < 2) return;
+  
   var ctx = c.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
   var rect = c.getBoundingClientRect();
   c.width = rect.width * dpr;
   c.height = rect.height * dpr;
   ctx.scale(dpr, dpr);
-  var W = rect.width, H = rect.height, P = 28;
+  var W = rect.width, H = rect.height, P = 32; // More padding for text
   var gW = W - P * 2, gH = H - P * 2;
-  var mn = Math.min.apply(null, h.usd) - 0.3;
-  var mx = Math.max.apply(null, h.usd) + 0.3;
+  var mn = Math.min.apply(null, vals) - 0.5;
+  var mx = Math.max.apply(null, vals) + 0.5;
   ctx.clearRect(0, 0, W, H);
 
   var cs = getComputedStyle(document.documentElement);
   var borderCol = cs.getPropertyValue('--c-border').trim() || 'rgba(255,255,255,.06)';
   var accent = cs.getPropertyValue('--c-accent').trim() || '#38bdf8';
   var textCol = cs.getPropertyValue('--c-text3').trim() || '#71717a';
+  var textColHigh = cs.getPropertyValue('--c-text1').trim() || '#fff';
 
   ctx.strokeStyle = borderCol;
   ctx.lineWidth = 1;
@@ -670,10 +696,10 @@ function drawChart(h) {
     ctx.beginPath(); ctx.moveTo(P, y); ctx.lineTo(W - P, y); ctx.stroke();
   }
 
-  var step = gW / (h.usd.length - 1);
+  var step = gW / (vals.length - 1);
   var pts = [];
-  for (var pi = 0; pi < h.usd.length; pi++) {
-    pts.push({ x: P + pi * step, y: P + gH - (h.usd[pi] - mn) / (mx - mn) * gH });
+  for (var pi = 0; pi < vals.length; pi++) {
+    pts.push({ x: P + pi * step, y: P + gH - (vals[pi] - mn) / (mx - mn) * gH });
   }
 
   var grad = ctx.createLinearGradient(0, P, 0, H - P);
@@ -704,9 +730,18 @@ function drawChart(h) {
     ctx.arc(pts[di].x, pts[di].y, 4, 0, Math.PI * 2);
     ctx.fillStyle = accent;
     ctx.fill();
+    
+    // Draw Value (Price)
+    ctx.fillStyle = textColHigh;
+    ctx.font = 'bold 10px -apple-system,sans-serif';
+    ctx.textAlign = 'center';
+    var textY = pts[di].y - 10;
+    if (pts[di].y < P + 10) textY = pts[di].y + 16; // flip down if too high
+    ctx.fillText(vals[di].toFixed(2), pts[di].x, textY);
+    
+    // Draw Date (X-Axis)
     ctx.fillStyle = textCol;
     ctx.font = '10px -apple-system,sans-serif';
-    ctx.textAlign = 'center';
     ctx.fillText(h.dates[di], pts[di].x, H - 8);
   }
 }
