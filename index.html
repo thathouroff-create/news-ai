@@ -2,181 +2,161 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>News AI — Персональные новости</title>
   <meta name="description" content="Быстрый и удобный агрегатор новостей для семьи: умный рейтинг, автоперевод, офлайн-режим.">
-  
-  <!-- PWA Capabilities -->
+
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" content="#09090b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="News AI">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
-  <link rel="stylesheet" href="styles.css">
+  <!-- Preconnect for speed -->
+  <link rel="preconnect" href="https://api.rss2json.com">
+  <link rel="preconnect" href="https://www.cbr-xml-daily.ru">
+  <link rel="dns-prefetch" href="https://translate.googleapis.com">
 
-  <!-- Zero-FOUC script -->
+  <link rel="stylesheet" href="styles.css?v=3.0">
+
+  <!-- FOUC prevention -->
   <script>
-    (function() {
-      const savedTheme = localStorage.getItem('news_theme') || 'dark';
-      document.documentElement.className = 'theme-' + savedTheme;
-      const savedFont = localStorage.getItem('news_font_scale');
-      if (savedFont) {
-        document.documentElement.style.setProperty('--font-scale', savedFont);
-      }
+    (function(){
+      var t = localStorage.getItem('news_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      var f = localStorage.getItem('news_font_scale');
+      if (f) document.documentElement.style.setProperty('--font-scale', f);
     })();
   </script>
 </head>
-<body class="theme-dark">
+<body>
 
-  <!-- ШАПКА ПРИЛОЖЕНИЯ -->
-  <header class="app-header">
-    <div class="header-inner">
-      <div class="brand-wrapper" onclick="loadFeed('ALL', true)" title="Обновить ленту">
-        <div class="brand-icon">⚡</div>
-        <div class="brand-title">News<span>AI</span></div>
+  <!-- HEADER -->
+  <header class="app-header" id="app-header">
+    <div class="header-top">
+      <div class="brand" onclick="loadFeed('ALL',true)" role="button" tabindex="0" aria-label="Обновить ленту">
+        <div class="brand-logo">N</div>
+        <span class="brand-name">News<em>AI</em></span>
       </div>
-
-      <div class="header-right-group">
-        <div class="widget-pill" id="currency-pill" onclick="openRatesModal()" title="Курсы валют ЦБ">
-          <span class="rate-green">$ --.-</span> <span class="rate-red">€ --.-</span>
-        </div>
-        <div class="widget-pill weather-widget" id="weather-pill" title="Погода">
-          <span>⛅ +--°C</span>
-        </div>
-        <button class="btn-icon" onclick="loadFeed(state.currentCategory, true)" title="Обновить" aria-label="Обновить">
-          🔄
+      <div class="header-widgets">
+        <button class="pill" id="currency-pill" onclick="openRatesModal()" aria-label="Курсы валют">
+          <span class="cur cur-usd">$ —</span>
+          <span class="cur cur-eur">€ —</span>
         </button>
-        <button class="btn-icon" onclick="openSettingsModal()" title="Настройки" aria-label="Настройки">
-          ⚙️
+        <button class="pill" id="weather-pill" aria-label="Погода">⛅ —°</button>
+        <button class="icon-btn" id="btn-refresh" onclick="loadFeed(state.currentCategory,true)" aria-label="Обновить">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+        </button>
+        <button class="icon-btn" onclick="openSettingsModal()" aria-label="Настройки">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
     </div>
 
-    <!-- УПРАВЛЕНИЕ: ПОИСК, КАТЕГОРИИ (3+3), СОРТИРОВКА -->
-    <div class="controls-bar">
-      <!-- Поиск -->
-      <div class="search-wrapper">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" class="search-input" placeholder="Поиск по новостям..." aria-label="Поиск">
-        <button id="search-clear" class="search-clear" aria-label="Очистить">✕</button>
-      </div>
+    <!-- Search -->
+    <div class="search-bar">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="search-input" class="search-input" placeholder="Поиск новостей…" autocomplete="off" aria-label="Поиск">
+      <button id="search-clear" class="search-clear" aria-label="Очистить" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
 
-      <!-- Сетка категорий 3+3 (без горизонтальной прокрутки) -->
-      <div class="tabs-grid">
-        <button class="tab-chip active" data-category="ALL" onclick="loadFeed('ALL')">⚡ Сводка</button>
-        <button class="tab-chip" data-category="WORLD" onclick="loadFeed('WORLD')">🌍 В мире</button>
-        <button class="tab-chip" data-category="TECH" onclick="loadFeed('TECH')">💻 IT / Наука</button>
-        <button class="tab-chip" data-category="ECONOMY" onclick="loadFeed('ECONOMY')">📈 Экономика</button>
-        <button class="tab-chip" data-category="SCIENCE" onclick="loadFeed('SCIENCE')">🧪 Наука</button>
-        <button class="tab-chip" data-category="GAMES" onclick="loadFeed('GAMES')">🎮 Игры</button>
-      </div>
+    <!-- Category Tabs 3+3 -->
+    <div class="tabs-grid" id="tabs-grid">
+      <button class="tab active" data-cat="ALL" onclick="loadFeed('ALL')">⚡ Сводка</button>
+      <button class="tab" data-cat="WORLD" onclick="loadFeed('WORLD')">🌍 Мир</button>
+      <button class="tab" data-cat="TECH" onclick="loadFeed('TECH')">💻 Технологии</button>
+      <button class="tab" data-cat="ECONOMY" onclick="loadFeed('ECONOMY')">📈 Экономика</button>
+      <button class="tab" data-cat="SCIENCE" onclick="loadFeed('SCIENCE')">🧪 Наука</button>
+      <button class="tab" data-cat="GAMES" onclick="loadFeed('GAMES')">🎮 Игры</button>
+    </div>
 
-      <!-- Сегментированная сортировка -->
-      <div class="sort-strip">
-        <div class="sort-segmented-control">
-          <button class="sort-btn active" data-sort="hot">🔥 Главное</button>
-          <button class="sort-btn" data-sort="latest">⚡ Свежее</button>
-          <button class="sort-btn" data-sort="bookmarks">⭐ Закладки</button>
-        </div>
-        <div id="feed-status" class="feed-status-text">Загрузка...</div>
+    <!-- Sort strip -->
+    <div class="sort-row">
+      <div class="seg-control" id="seg-control">
+        <button class="seg active" data-sort="hot">🔥 Главное</button>
+        <button class="seg" data-sort="latest">⏱ Свежее</button>
+        <button class="seg" data-sort="bookmarks">⭐ Закладки</button>
+        <div class="seg-indicator" id="seg-indicator"></div>
       </div>
+      <span class="feed-count" id="feed-status"></span>
     </div>
   </header>
 
-  <!-- ОСНОВНАЯ ЛЕНТА -->
-  <main class="main-container">
-    <div id="news-feed" class="news-feed">
-      <!-- Карточки новостей -->
-    </div>
-  </main>
-
-  <!-- PWA БАННЕР -->
-  <div id="pwa-install-banner" class="pwa-install-banner" style="display: none;">
-    <div class="install-content">
-      <div class="install-icon">⚡</div>
-      <div class="install-text">
-        <h4>Установить News AI</h4>
-        <p>На главный экран телефона</p>
-      </div>
-    </div>
-    <button class="btn-install-primary" onclick="triggerPwaInstall()">Установить</button>
-    <button class="btn-install-close" onclick="dismissPwaBanner()" aria-label="Закрыть">✕</button>
+  <!-- Pull to refresh indicator -->
+  <div class="ptr-indicator" id="ptr-indicator">
+    <div class="ptr-spinner"></div>
+    <span>Обновление…</span>
   </div>
 
-  <!-- МОДАЛКА: КУРСЫ ВАЛЮТ -->
-  <div class="modal-backdrop" id="rates-modal" onclick="this.classList.remove('open')">
-    <div class="modal-dialog" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <h3 class="modal-title">Курсы валют ЦБ РФ</h3>
-        <button class="modal-close" onclick="document.getElementById('rates-modal').classList.remove('open')">✕</button>
+  <!-- Feed -->
+  <main class="feed-container">
+    <div id="news-feed" class="news-feed"></div>
+  </main>
+
+  <!-- PWA Install Banner -->
+  <div class="pwa-banner" id="pwa-install-banner" style="display:none" role="alert">
+    <div class="pwa-banner-body">
+      <div class="pwa-icon">📲</div>
+      <div><strong>Установить News AI</strong><br><small>На главный экран телефона</small></div>
+    </div>
+    <button class="btn-primary" onclick="triggerPwaInstall()">Установить</button>
+    <button class="pwa-close" onclick="dismissPwaBanner()" aria-label="Закрыть">✕</button>
+  </div>
+
+  <!-- Modal: Rates -->
+  <div class="modal-overlay" id="rates-modal" onclick="closeModal('rates-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3>Курсы валют ЦБ РФ</h3>
+        <button class="modal-x" onclick="closeModal('rates-modal')">✕</button>
       </div>
-      <p style="font-size: 0.75rem; color: var(--text-muted);">Динамика курса USD за 7 дней:</p>
-      <div class="chart-container">
-        <canvas id="sparklineCanvas"></canvas>
-      </div>
-      <table class="rates-table">
-        <thead>
-          <tr><th>Валюта</th><th>Курс</th><th>Изм.</th></tr>
-        </thead>
-        <tbody id="rates-table-body">
-          <tr><td colspan="3">Загрузка...</td></tr>
-        </tbody>
+      <p class="modal-sub">Динамика USD / 7 дней</p>
+      <div class="chart-wrap"><canvas id="sparkCanvas"></canvas></div>
+      <table class="rates-tbl">
+        <thead><tr><th>Валюта</th><th>Курс</th><th>Δ</th></tr></thead>
+        <tbody id="rates-body"><tr><td colspan="3">Загрузка…</td></tr></tbody>
       </table>
     </div>
   </div>
 
-  <!-- МОДАЛКА: НАСТРОЙКИ -->
-  <div class="modal-backdrop" id="settings-modal" onclick="this.classList.remove('open')">
-    <div class="modal-dialog" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <h3 class="modal-title">Настройки для чтения</h3>
-        <button class="modal-close" onclick="document.getElementById('settings-modal').classList.remove('open')">✕</button>
+  <!-- Modal: Settings -->
+  <div class="modal-overlay" id="settings-modal" onclick="closeModal('settings-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3>Настройки</h3>
+        <button class="modal-x" onclick="closeModal('settings-modal')">✕</button>
       </div>
-
-      <div class="setting-row">
-        <div>
-          <div class="setting-label">Тема оформления</div>
-          <div class="setting-desc">Выберите комфортный стиль</div>
-        </div>
-        <div class="theme-options">
-          <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">🌑 OLED</button>
-          <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️ Светлая</button>
-          <button class="theme-btn" data-theme="indigo" onclick="setTheme('indigo')">🌌 Индиго</button>
+      <div class="setting">
+        <div><div class="setting-title">Тема</div><div class="setting-hint">Оформление приложения</div></div>
+        <div class="theme-chips">
+          <button class="theme-chip" data-theme="dark" onclick="setTheme('dark')">🌑 Тёмная</button>
+          <button class="theme-chip" data-theme="light" onclick="setTheme('light')">☀️ Светлая</button>
+          <button class="theme-chip" data-theme="indigo" onclick="setTheme('indigo')">🌌 Индиго</button>
         </div>
       </div>
-
-      <div class="setting-row">
-        <div>
-          <div class="setting-label">Размер текста</div>
-          <div class="setting-desc">Для родителей и старших</div>
-        </div>
-        <div class="font-size-control">
-          <button class="font-btn" onclick="adjustFontScale(-0.1)" title="Меньше">A-</button>
-          <span id="font-scale-label" style="font-weight: 700; font-size: 0.8rem; min-width: 36px; text-align: center;">100%</span>
-          <button class="font-btn" onclick="adjustFontScale(0.1)" title="Больше">A+</button>
+      <div class="setting">
+        <div><div class="setting-title">Размер текста</div><div class="setting-hint">Для комфортного чтения</div></div>
+        <div class="font-ctrl">
+          <button class="font-btn" onclick="adjustFontScale(-0.1)">A−</button>
+          <span id="font-scale-label">100%</span>
+          <button class="font-btn" onclick="adjustFontScale(0.1)">A+</button>
         </div>
       </div>
-
-      <div class="setting-row" style="border-bottom: none; padding-top: 12px;">
-        <div>
-          <div class="setting-label">Приложение на телефон</div>
-          <div class="setting-desc">Добавить на рабочий стол</div>
-        </div>
-        <button class="btn-install-primary" onclick="triggerPwaInstall()">📲 Установить</button>
+      <div class="setting" style="border:0">
+        <div><div class="setting-title">Установить приложение</div><div class="setting-hint">Добавить на рабочий стол</div></div>
+        <button class="btn-primary" onclick="triggerPwaInstall()">📲 Установить</button>
       </div>
     </div>
   </div>
 
-  <script>
-    function openSettingsModal() {
-      vibe(15);
-      document.getElementById('settings-modal').classList.add('open');
-    }
-  </script>
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
 
-  <script src="app.js" defer></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
