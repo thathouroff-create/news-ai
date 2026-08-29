@@ -20,14 +20,14 @@
   <link rel="preconnect" href="https://www.cbr-xml-daily.ru">
   <link rel="dns-prefetch" href="https://translate.googleapis.com">
 
-  <link rel="stylesheet" href="styles.css?v=3.0">
+  <link rel="stylesheet" href="styles.css?v=3.1">
 
   <!-- FOUC prevention -->
   <script>
     (function(){
       var t = localStorage.getItem('news_theme') || 'dark';
       document.documentElement.setAttribute('data-theme', t);
-      var f = localStorage.getItem('news_font_scale');
+      var f = localStorage.getItem('news_fs');
       if (f) document.documentElement.style.setProperty('--font-scale', f);
     })();
   </script>
@@ -157,6 +157,6 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script src="app.js?v=3.0"></script>
+  <script src="app.js?v=3.1"></script>
 </body>
 </html>
