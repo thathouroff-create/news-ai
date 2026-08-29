@@ -1,9 +1,9 @@
-const CACHE_NAME = 'news-ai-v3.1';
+const CACHE_NAME = 'news-ai-v3.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=3.1',
-  './app.js?v=3.1',
+  './styles.css?v=3.0',
+  './app.js?v=3.0',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
@@ -35,50 +35,36 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // External API calls (RSS, currency, weather, translate) — Network First with timeout
+  // External API calls (RSS, currency, weather, translate) — Network First
   if (url.origin !== location.origin) {
     event.respondWith(
-      new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => reject(new Error('timeout')), 5000);
-        fetch(event.request)
-          .then(response => {
-            clearTimeout(timeoutId);
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-            }
-            resolve(response);
-          })
-          .catch(err => {
-            clearTimeout(timeoutId);
-            reject(err);
-          });
-      }).catch(() => caches.match(event.request, { ignoreSearch: true }).then(r =>
-        r || new Response(JSON.stringify({ error: 'offline' }), {
-          headers: { 'Content-Type': 'application/json' }
-        })
-      ))
-    );
-    return;
-  }
-
-  // Static assets — Network First with timeout (ensures updates arrive on phones quickly or fallbacks to cache)
-  event.respondWith(
-    new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => reject(new Error('timeout')), 4000); // 4 sec timeout for static assets
       fetch(event.request)
         .then(response => {
-          clearTimeout(timeoutId);
           if (response && response.status === 200) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
           }
-          resolve(response);
+          return response;
         })
-        .catch(err => {
-          clearTimeout(timeoutId);
-          reject(err);
-        });
-    }).catch(() => caches.match(event.request, { ignoreSearch: true })) // ignoreSearch for PWA parameters
+        .catch(() => caches.match(event.request).then(r =>
+          r || new Response(JSON.stringify({ error: 'offline' }), {
+            headers: { 'Content-Type': 'application/json' }
+          })
+        ))
+    );
+    return;
+  }
+
+  // Static assets — Network First (ensures updates arrive on phones!)
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
