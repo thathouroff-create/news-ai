@@ -4,21 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>News AI — Персональные новости</title>
-  <meta name="description" content="Умный, быстрый и удобный агрегатор мировых и российских новостей с умным рейтингом, автопереводом и офлайн-режимом.">
+  <meta name="description" content="Быстрый и удобный агрегатор новостей для семьи: умный рейтинг, автоперевод, офлайн-режим.">
   
-  <!-- PWA & Mobile Web App Capabilities -->
+  <!-- PWA Capabilities -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#090d16">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="News AI">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
-  <!-- Стили -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Предотвращение мигания темы (Zero FOUC) -->
+  <!-- Zero-FOUC script -->
   <script>
     (function() {
       const savedTheme = localStorage.getItem('news_theme') || 'dark';
@@ -35,54 +34,49 @@
   <!-- ШАПКА ПРИЛОЖЕНИЯ -->
   <header class="app-header">
     <div class="header-inner">
-      <div class="brand-wrapper" onclick="loadFeed('ALL', true)" title="На главную">
+      <div class="brand-wrapper" onclick="loadFeed('ALL', true)" title="Обновить ленту">
         <div class="brand-icon">⚡</div>
         <div class="brand-title">News<span>AI</span></div>
       </div>
 
-      <!-- Виджеты (курсы и погода) -->
-      <div class="header-widgets">
+      <div class="header-right-group">
         <div class="widget-pill" id="currency-pill" onclick="openRatesModal()" title="Курсы валют ЦБ">
           <span class="rate-green">$ --.-</span> <span class="rate-red">€ --.-</span>
         </div>
-        <div class="widget-pill" id="weather-pill" title="Погода">
+        <div class="widget-pill weather-widget" id="weather-pill" title="Погода">
           <span>⛅ +--°C</span>
         </div>
-      </div>
-
-      <!-- Кнопки действий -->
-      <div class="header-actions">
-        <button class="btn-icon" onclick="loadFeed(state.currentCategory, true)" title="Обновить ленту" aria-label="Обновить ленту">
+        <button class="btn-icon" onclick="loadFeed(state.currentCategory, true)" title="Обновить" aria-label="Обновить">
           🔄
         </button>
-        <button class="btn-icon" onclick="openSettingsModal()" title="Настройки и темы" aria-label="Настройки">
+        <button class="btn-icon" onclick="openSettingsModal()" title="Настройки" aria-label="Настройки">
           ⚙️
         </button>
       </div>
     </div>
 
-    <!-- ПОИСК И КАТЕГОРИИ -->
+    <!-- УПРАВЛЕНИЕ: ПОИСК, КАТЕГОРИИ (3+3), СОРТИРОВКА -->
     <div class="controls-bar">
-      <!-- Поле поиска -->
+      <!-- Поиск -->
       <div class="search-wrapper">
         <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" class="search-input" placeholder="Поиск по новостям и статьям..." aria-label="Поиск по новостям">
-        <button id="search-clear" class="search-clear" aria-label="Очистить поиск">✕</button>
+        <input type="text" id="search-input" class="search-input" placeholder="Поиск по новостям..." aria-label="Поиск">
+        <button id="search-clear" class="search-clear" aria-label="Очистить">✕</button>
       </div>
 
-      <!-- Горизонтальные табы категорий -->
-      <div class="tabs-scroll-container">
+      <!-- Сетка категорий 3+3 (без горизонтальной прокрутки) -->
+      <div class="tabs-grid">
         <button class="tab-chip active" data-category="ALL" onclick="loadFeed('ALL')">⚡ Сводка</button>
         <button class="tab-chip" data-category="WORLD" onclick="loadFeed('WORLD')">🌍 В мире</button>
-        <button class="tab-chip" data-category="TECH" onclick="loadFeed('TECH')">💻 Технологии & IT</button>
+        <button class="tab-chip" data-category="TECH" onclick="loadFeed('TECH')">💻 IT / Наука</button>
         <button class="tab-chip" data-category="ECONOMY" onclick="loadFeed('ECONOMY')">📈 Экономика</button>
         <button class="tab-chip" data-category="SCIENCE" onclick="loadFeed('SCIENCE')">🧪 Наука</button>
-        <button class="tab-chip" data-category="GAMES" onclick="loadFeed('GAMES')">🎮 Игры & Медиа</button>
+        <button class="tab-chip" data-category="GAMES" onclick="loadFeed('GAMES')">🎮 Игры</button>
       </div>
 
-      <!-- Панель сортировки (Тренды / Свежее / Закладки) -->
+      <!-- Сегментированная сортировка -->
       <div class="sort-strip">
-        <div class="sort-options">
+        <div class="sort-segmented-control">
           <button class="sort-btn active" data-sort="hot">🔥 Главное</button>
           <button class="sort-btn" data-sort="latest">⚡ Свежее</button>
           <button class="sort-btn" data-sort="bookmarks">⭐ Закладки</button>
@@ -95,52 +89,46 @@
   <!-- ОСНОВНАЯ ЛЕНТА -->
   <main class="main-container">
     <div id="news-feed" class="news-feed">
-      <!-- Динамические карточки новостей -->
+      <!-- Карточки новостей -->
     </div>
   </main>
 
-  <!-- БАННЕР УСТАНОВКИ PWA НА ТЕЛЕФОН -->
+  <!-- PWA БАННЕР -->
   <div id="pwa-install-banner" class="pwa-install-banner" style="display: none;">
     <div class="install-content">
       <div class="install-icon">⚡</div>
       <div class="install-text">
         <h4>Установить News AI</h4>
-        <p>Быстрый доступ прямо с экрана телефона</p>
+        <p>На главный экран телефона</p>
       </div>
     </div>
-    <div class="install-actions">
-      <button class="btn-install-primary" onclick="triggerPwaInstall()">Установить</button>
-      <button class="btn-install-close" onclick="dismissPwaBanner()" aria-label="Закрыть">✕</button>
-    </div>
+    <button class="btn-install-primary" onclick="triggerPwaInstall()">Установить</button>
+    <button class="btn-install-close" onclick="dismissPwaBanner()" aria-label="Закрыть">✕</button>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО: КУРСЫ ВАЛЮТ -->
+  <!-- МОДАЛКА: КУРСЫ ВАЛЮТ -->
   <div class="modal-backdrop" id="rates-modal" onclick="this.classList.remove('open')">
     <div class="modal-dialog" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h3 class="modal-title">Курс валют ЦБ РФ</h3>
+        <h3 class="modal-title">Курсы валют ЦБ РФ</h3>
         <button class="modal-close" onclick="document.getElementById('rates-modal').classList.remove('open')">✕</button>
       </div>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Динамика курса USD за последние 7 дней:</p>
+      <p style="font-size: 0.75rem; color: var(--text-muted);">Динамика курса USD за 7 дней:</p>
       <div class="chart-container">
         <canvas id="sparklineCanvas"></canvas>
       </div>
       <table class="rates-table">
         <thead>
-          <tr>
-            <th>Валюта</th>
-            <th>Курс</th>
-            <th>Изм.</th>
-          </tr>
+          <tr><th>Валюта</th><th>Курс</th><th>Изм.</th></tr>
         </thead>
         <tbody id="rates-table-body">
-          <tr><td colspan="3">Загрузка данных...</td></tr>
+          <tr><td colspan="3">Загрузка...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО: НАСТРОЙКИ ДЛЯ СЕМЬИ -->
+  <!-- МОДАЛКА: НАСТРОЙКИ -->
   <div class="modal-backdrop" id="settings-modal" onclick="this.classList.remove('open')">
     <div class="modal-dialog" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -148,7 +136,6 @@
         <button class="modal-close" onclick="document.getElementById('settings-modal').classList.remove('open')">✕</button>
       </div>
 
-      <!-- Выбор темы -->
       <div class="setting-row">
         <div>
           <div class="setting-label">Тема оформления</div>
@@ -161,24 +148,22 @@
         </div>
       </div>
 
-      <!-- Масштаб шрифта для семьи -->
       <div class="setting-row">
         <div>
           <div class="setting-label">Размер текста</div>
-          <div class="setting-desc">Удобно для родителей и старших</div>
+          <div class="setting-desc">Для родителей и старших</div>
         </div>
         <div class="font-size-control">
-          <button class="font-btn" onclick="adjustFontScale(-0.1)" title="Уменьшить">A-</button>
-          <span id="font-scale-label" style="font-weight: 700; font-size: 0.85rem; min-width: 42px; text-align: center;">100%</span>
-          <button class="font-btn" onclick="adjustFontScale(0.1)" title="Увеличить">A+</button>
+          <button class="font-btn" onclick="adjustFontScale(-0.1)" title="Меньше">A-</button>
+          <span id="font-scale-label" style="font-weight: 700; font-size: 0.8rem; min-width: 36px; text-align: center;">100%</span>
+          <button class="font-btn" onclick="adjustFontScale(0.1)" title="Больше">A+</button>
         </div>
       </div>
 
-      <!-- Кнопка установки приложения -->
-      <div class="setting-row" style="border-bottom: none; padding-top: 16px;">
+      <div class="setting-row" style="border-bottom: none; padding-top: 12px;">
         <div>
           <div class="setting-label">Приложение на телефон</div>
-          <div class="setting-desc">Добавить на главный экран телефона</div>
+          <div class="setting-desc">Добавить на рабочий стол</div>
         </div>
         <button class="btn-install-primary" onclick="triggerPwaInstall()">📲 Установить</button>
       </div>
@@ -192,7 +177,6 @@
     }
   </script>
 
-  <!-- Скрипт приложения -->
   <script src="app.js" defer></script>
 </body>
 </html>
