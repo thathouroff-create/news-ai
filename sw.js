@@ -1,70 +1,84 @@
-const CACHE_NAME = 'news-ai-v3.0';
+const CACHE_NAME = 'news-ai-v2.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=3.0',
-  './app.js?v=3.0',
+  './styles.css',
+  './app.js',
   './manifest.json',
   './icons/icon.svg',
-  './icons/icon-maskable.svg',
+  './icons/icon-maskable.svg'
 ];
 
-// Install — cache shell, skip waiting immediately
+// Установка воркера и кэширование оболочки приложения
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    }).then(() => self.skipWaiting())
   );
 });
 
-// Activate — purge ALL old caches, claim clients
+// Активация и очистка устаревших версий кэша
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then(names => Promise.all(
-        names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
-      ))
-      .then(() => self.clients.claim())
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
-// Fetch strategy
+// Перехват запросов (Network-First для API новостей, Cache-First для статики)
 self.addEventListener('fetch', (event) => {
+  const requestUrl = new URL(event.request.url);
+
+  // Пропускаем не-GET запросы
   if (event.request.method !== 'GET') return;
 
-  const url = new URL(event.request.url);
-
-  // External API calls (RSS, currency, weather, translate) — Network First
-  if (url.origin !== location.origin) {
+  // Для внешних динамических запросов новостей (CORS прокси, курсы ЦБ) — Network First с fallback в кэш
+  if (
+    requestUrl.origin !== location.origin ||
+    requestUrl.pathname.includes('api') ||
+    requestUrl.search.includes('http')
+  ) {
     event.respondWith(
       fetch(event.request)
-        .then(response => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
           }
-          return response;
+          return networkResponse;
         })
-        .catch(() => caches.match(event.request).then(r =>
-          r || new Response(JSON.stringify({ error: 'offline' }), {
+        .catch(async () => {
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) return cachedResponse;
+          return new Response(JSON.stringify({ error: 'offline', offline: true }), {
             headers: { 'Content-Type': 'application/json' }
-          })
-        ))
+          });
+        })
     );
     return;
   }
 
-  // Static assets — Network First (ensures updates arrive on phones!)
+  // Для статических файлов приложения — Stale-While-Revalidate
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse.clone()));
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
+    })
   );
 });
