@@ -1,9 +1,9 @@
-const CACHE_NAME = 'news-ai-v3.0';
+const CACHE_NAME = 'news-ai-v3.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=3.0',
-  './app.js?v=3.0',
+  './styles.css?v=3.1',
+  './app.js?v=3.1',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
@@ -35,36 +35,50 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // External API calls (RSS, currency, weather, translate) — Network First
+  // External API calls (RSS, currency, weather, translate) — Network First with timeout
   if (url.origin !== location.origin) {
     event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request).then(r =>
-          r || new Response(JSON.stringify({ error: 'offline' }), {
-            headers: { 'Content-Type': 'application/json' }
+      new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => reject(new Error('timeout')), 5000);
+        fetch(event.request)
+          .then(response => {
+            clearTimeout(timeoutId);
+            if (response && response.status === 200) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+            }
+            resolve(response);
           })
-        ))
+          .catch(err => {
+            clearTimeout(timeoutId);
+            reject(err);
+          });
+      }).catch(() => caches.match(event.request, { ignoreSearch: true }).then(r =>
+        r || new Response(JSON.stringify({ error: 'offline' }), {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      ))
     );
     return;
   }
 
-  // Static assets — Network First (ensures updates arrive on phones!)
+  // Static assets — Network First with timeout (ensures updates arrive on phones quickly or fallbacks to cache)
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => reject(new Error('timeout')), 4000); // 4 sec timeout for static assets
+      fetch(event.request)
+        .then(response => {
+          clearTimeout(timeoutId);
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          }
+          resolve(response);
+        })
+        .catch(err => {
+          clearTimeout(timeoutId);
+          reject(err);
+        });
+    }).catch(() => caches.match(event.request, { ignoreSearch: true })) // ignoreSearch for PWA parameters
   );
 });
