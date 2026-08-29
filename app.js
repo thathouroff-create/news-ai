@@ -348,46 +348,65 @@ function loadFeed(cat, force) {
 
   showSkeletons();
 
-  var cfgs = FEEDS[cat] || FEEDS.ALL;
-
-  // FIX BUG 1: no Promise.allSettled — use manual wrapper
-  Promise.all(cfgs.map(function(c) {
-    return fetchFeed(c).catch(function() { return []; });
-  })).then(function(results) {
-    var flat = [];
-    for (var r = 0; r < results.length; r++) {
-      flat = flat.concat(results[r]);
-    }
-
-    // Deduplicate
-    var seen = {};
-    var uniq = [];
-    for (var j = 0; j < flat.length; j++) {
-      var it = flat[j];
-      var k = it.title.toLowerCase().slice(0, 28);
-      if (!seen[k] && !seen[it.link]) {
-        seen[k] = true;
-        seen[it.link] = true;
-        uniq.push(it);
+  // FIX BUG 5: Try to load pre-computed feeds from our own domain (bypasses all CORS and RKN blocks)
+  fetch('./data/latest.json?t=' + Math.floor(Date.now() / 300000))
+    .then(function(r) {
+      if (!r.ok) throw new Error('No pre-computed data');
+      return r.json();
+    })
+    .then(function(d) {
+      if (d && d.data && d.data[cat] && d.data[cat].length > 0) {
+        state.items = d.data[cat];
+        try { localStorage.setItem(key, JSON.stringify({ items: state.items, ts: Date.now() })); } catch (e) {}
+        renderFeed();
+        autoTranslateItems(state.items);
+        state.loading = false;
+        if (rb) rb.classList.remove('spinning');
+        return;
       }
-    }
+      throw new Error('Empty pre-computed data');
+    })
+    .catch(function() {
+      // Fallback to client-side parsing if pre-computed data is missing
+      var cfgs = FEEDS[cat] || FEEDS.ALL;
+      Promise.all(cfgs.map(function(c) {
+        return fetchFeed(c).catch(function() { return []; });
+      })).then(function(results) {
+        var flat = [];
+        for (var r = 0; r < results.length; r++) {
+          flat = flat.concat(results[r]);
+        }
 
-    if (uniq.length > 0) {
-      state.items = uniq;
-      try { localStorage.setItem(key, JSON.stringify({ items: uniq, ts: Date.now() })); } catch (e) {}
-      renderFeed();
-      autoTranslateItems(state.items);
-    } else {
-      feed.innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div class="empty-title">Не удалось загрузить</div><p style="font-size:.82rem;margin:8px 0">Проверьте интернет-соединение</p><button class="btn-primary" data-action="retry">Повторить</button></div>';
-      updateCount('Ошибка');
-    }
-  }).catch(function() {
-    feed.innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div class="empty-title">Ошибка сети</div><button class="btn-primary" data-action="retry">Повторить</button></div>';
-    updateCount('Ошибка');
-  }).then(function() {
-    state.loading = false;
-    if (rb) rb.classList.remove('spinning');
-  });
+        // Deduplicate
+        var seen = {};
+        var uniq = [];
+        for (var j = 0; j < flat.length; j++) {
+          var it = flat[j];
+          var k = it.title.toLowerCase().slice(0, 28);
+          if (!seen[k] && !seen[it.link]) {
+            seen[k] = true;
+            seen[it.link] = true;
+            uniq.push(it);
+          }
+        }
+
+        if (uniq.length > 0) {
+          state.items = uniq;
+          try { localStorage.setItem(key, JSON.stringify({ items: uniq, ts: Date.now() })); } catch (e) {}
+          renderFeed();
+          autoTranslateItems(state.items);
+        } else {
+          feed.innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div class="empty-title">Не удалось загрузить</div><p style="font-size:.82rem;margin:8px 0">Проверьте интернет-соединение</p><button class="btn-primary" data-action="retry">Повторить</button></div>';
+          updateCount('Ошибка');
+        }
+      }).catch(function() {
+        feed.innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div class="empty-title">Ошибка сети</div><button class="btn-primary" data-action="retry">Повторить</button></div>';
+        updateCount('Ошибка');
+      }).then(function() {
+        state.loading = false;
+        if (rb) rb.classList.remove('spinning');
+      });
+    });
 }
 
 /* ═══ RENDER (FIX BUG 2: NO inline onclick with user data) ═══ */
