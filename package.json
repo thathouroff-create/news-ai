@@ -1,0 +1,12 @@
+{
+  "name": "news-ai-backend",
+  "version": "1.0.0",
+  "description": "Fetches RSS feeds for News AI",
+  "private": true,
+  "scripts": {
+    "fetch": "node fetch-feeds.js"
+  },
+  "dependencies": {
+    "rss-parser": "^3.13.0"
+  }
+}
