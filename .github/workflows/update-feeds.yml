@@ -2,13 +2,17 @@ name: Fetch News Feeds
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Run every 30 minutes
+    - cron: '13,43 * * * *' # Off-peak minutes to minimize GitHub Actions queue throttling
   repository_dispatch:
     types: [fetch-news]
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
 
 jobs:
   fetch-and-deploy:
@@ -24,25 +28,34 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Install Dependencies Safely
+        run: npm install --ignore-scripts --no-audit --no-fund
 
-      - name: Fetch Feeds
+      - name: Clone gh-pages branch & restore previous snapshot for cache reuse
+        run: |
+          git clone --branch gh-pages --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-dir
+          if [ -f gh-pages-dir/data/latest.json ]; then
+            mkdir -p data
+            cp gh-pages-dir/data/latest.json data/latest.json
+          fi
+
+      - name: Fetch Feeds & Build v4.0 Snapshot
         run: node fetch-feeds.js
 
-      - name: Commit data to gh-pages branch
+      - name: Commit data to gh-pages branch with rebase retry
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Clone gh-pages branch into a separate directory
-          git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-dir
-          
-          # Copy the generated data folder to the gh-pages directory
+
           cp -r data gh-pages-dir/
-          
-          # Commit and push
           cd gh-pages-dir
           git add data/latest.json
-          git commit -m "Automated feed update: $(date -u)" || echo "No changes to commit"
-          git push origin gh-pages
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Automated v4.0 feed update: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          for i in 1 2 3; do
+            git pull --rebase origin gh-pages && git push origin gh-pages && break
+            sleep 3
+          done

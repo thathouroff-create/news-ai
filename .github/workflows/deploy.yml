@@ -7,6 +7,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -14,10 +18,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Stage clean frontend bundle
+        run: |
+          mkdir -p .dist/icons
+          cp index.html styles.css app.js sw.js manifest.json .dist/
+          cp -r icons/* .dist/icons/
+
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: .
+          folder: .dist
           branch: gh-pages
           clean-exclude: |
             data/

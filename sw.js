@@ -1,84 +1,114 @@
-const CACHE_NAME = 'news-ai-v3.1';
+const CACHE_NAME = 'news-ai-v4.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=3.1',
-  './app.js?v=3.1',
+  './styles.css?v=4.0',
+  './app.js?v=4.0',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
-// Install — cache shell, skip waiting immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then((cache) => cache.addAll(STATIC_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
 
-// Activate — purge ALL old caches, claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then(names => Promise.all(
-        names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
+      .then((names) => Promise.all(
+        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
       ))
       .then(() => self.clients.claim())
   );
 });
 
-// Fetch strategy
+function fetchWithTimeout(request, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms);
+    fetch(request)
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Never intercept cross-origin images with JSON fallbacks; let browser handle <img> natively
+  if (event.request.destination === 'image' && new URL(event.request.url).origin !== self.location.origin) {
+    return;
+  }
+
   const url = new URL(event.request.url);
 
-  // External API calls (RSS, currency, weather, translate) — Network First with timeout
-  if (url.origin !== location.origin) {
+  // Canonicalize ./data/latest.json?t=... so CacheStorage holds only the newest snapshot
+  if (url.origin === self.location.origin && url.pathname.endsWith('/data/latest.json')) {
+    const canonicalReq = new Request(url.origin + url.pathname);
     event.respondWith(
-      new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => reject(new Error('timeout')), 5000);
-        fetch(event.request)
-          .then(response => {
-            clearTimeout(timeoutId);
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-            }
-            resolve(response);
-          })
-          .catch(err => {
-            clearTimeout(timeoutId);
-            reject(err);
-          });
-      }).catch(() => caches.match(event.request, { ignoreSearch: true }).then(r =>
-        r || new Response(JSON.stringify({ error: 'offline' }), {
-          headers: { 'Content-Type': 'application/json' }
+      fetchWithTimeout(event.request, 4500)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(canonicalReq, clone));
+          }
+          return response;
         })
-      ))
+        .catch(() => caches.match(canonicalReq).then((r) =>
+          r || new Response(JSON.stringify({ error: 'offline', data: {} }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        ))
     );
     return;
   }
 
-  // Static assets — Network First with timeout (ensures updates arrive on phones quickly or fallbacks to cache)
-  event.respondWith(
-    new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => reject(new Error('timeout')), 4000); // 4 sec timeout for static assets
-      fetch(event.request)
-        .then(response => {
-          clearTimeout(timeoutId);
+  // External API calls (currency, weather, translate, RSS fallback)
+  if (url.origin !== self.location.origin) {
+    event.respondWith(
+      fetchWithTimeout(event.request, 5000)
+        .then((response) => {
           if (response && response.status === 200) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+            caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
           }
-          resolve(response);
+          return response;
         })
-        .catch(err => {
-          clearTimeout(timeoutId);
-          reject(err);
-        });
-    }).catch(() => caches.match(event.request, { ignoreSearch: true })) // ignoreSearch for PWA parameters
+        .catch(() => caches.match(event.request, { ignoreSearch: true }).then((r) =>
+          r || new Response(JSON.stringify({ error: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        ))
+    );
+    return;
+  }
+
+  // Same-origin static shell assets — Network-First with fast fallback to cache
+  event.respondWith(
+    fetchWithTimeout(event.request, 3500)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request, { ignoreSearch: true }).then((r) =>
+        r || caches.match('./index.html')
+      ))
   );
 });
