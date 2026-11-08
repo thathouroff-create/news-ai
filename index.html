@@ -19,7 +19,7 @@
 
   <link rel="preconnect" href="https://www.cbr-xml-daily.ru">
   <link rel="preconnect" href="https://api.open-meteo.com">
-  <link rel="stylesheet" href="styles.css?v=4.0">
+  <link rel="stylesheet" href="styles.css?v=4.2">
 </head>
 <body>
 
@@ -142,6 +142,8 @@
         <button type="button" class="modal-x" data-close-modal="reader-modal" aria-label="Закрыть режим чтения">✕</button>
       </div>
       <h3 class="reader-title" id="reader-title"></h3>
+      <div id="reader-tldr" class="reader-tldr-wrap"></div>
+      <div id="reader-timeline" class="reader-timeline-wrap"></div>
       <div class="reader-body" id="reader-body"></div>
       <div class="reader-vpn-note" id="reader-vpn-note" style="display:none">
         🌐 Источник может ограничивать прямой доступ из РФ без VPN. Вы читаете сохранённую сводку News AI.
@@ -192,6 +194,6 @@
   <!-- Toast -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=4.0"></script>
+  <script src="app.js?v=4.2"></script>
 </body>
 </html>

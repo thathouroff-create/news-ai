@@ -466,6 +466,195 @@ function loadFeed(cat, force) {
     });
 }
 
+/* ═══ EDITORIAL AI CURATION (De-Clickbait, 3 Key Facts, Story Timeline) ═══ */
+
+/**
+ * De-Clickbait AI: выявляет манипулятивные, сенсационные кликбейты и нейтрализует их в спокойный, объективный заголовок.
+ */
+function detectAndCleanClickbait(title, desc) {
+  if (!title) return { isClickbait: false, cleanTitle: '', origTitle: '' };
+  var raw = String(title).trim();
+  var orig = raw;
+  var isCb = false;
+
+  // 1. Очистка от кричащих вводных шаблонов
+  var prefixPattern = /^(?:Шок!|Срочно!|Сенсация!|Стало известно,?|Выяснилось,?|Раскрыто,?|Раскрыт секрет,?|Назван способ,?|Названа причина,?|Вот что произошло:?|Только посмотрите:?|Врачи (?:ахнули|предупредили):?|Ученые (?:выяснили|предупредили):?|Неожиданный поворот:?)\s*/i;
+  if (prefixPattern.test(raw)) {
+    raw = raw.replace(prefixPattern, '');
+    isCb = true;
+  }
+
+  // 2. Очистка от избыточных знаков препинания и клиффхэнгеров
+  if (/[?!]{2,}/.test(raw)) {
+    raw = raw.replace(/[?!]{2,}/g, '');
+    isCb = true;
+  }
+  if (/\.\.\.$/.test(raw)) {
+    raw = raw.replace(/\.\.\.$/, '');
+    isCb = true;
+  }
+
+  // Английские кликбейты
+  var enCb = /^(?:You Won't Believe|Shocking Truth|This Simple Trick|Here's Why|Wait Until You See):?\s*/i;
+  if (enCb.test(raw)) {
+    raw = raw.replace(enCb, '');
+    isCb = true;
+  }
+
+  // Капслок слов длинее 4 символов (исключая общепринятые аббревиатуры ЦБ, США, МИД, РФ, НАТО, ОПЕК, МКС, ЮНЕСКО, АЭС, ВВП)
+  var capsWord = /\b[А-ЯA-Z]{5,}\b/;
+  if (capsWord.test(raw)) {
+    raw = raw.replace(/\b([А-ЯA-Z])([А-ЯA-Z]{4,})\b/g, function(m, p1, p2) {
+      return p1 + p2.toLowerCase();
+    });
+    isCb = true;
+  }
+
+  // Де-клиффхэнгер: если заголовок обрывается фразой "назван способ / раскрыто", а в описании есть суть
+  var cliffPattern = /(?:назван лучший способ|раскрыта причина|стало известно почему|назвали причину|объяснили причину)\s*$/i;
+  if (cliffPattern.test(raw) && desc) {
+    var firstSentence = String(desc).split(/[.!?]\s+/)[0] || '';
+    if (firstSentence.length > 15 && firstSentence.length < 120) {
+      raw = firstSentence.replace(/^[\s—–-]+/, '').trim();
+      isCb = true;
+    }
+  }
+
+  // Первая буква всегда заглавная
+  if (raw.length > 0) {
+    raw = raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
+  return {
+    isClickbait: isCb && (raw !== orig),
+    cleanTitle: raw || orig,
+    origTitle: orig
+  };
+}
+
+/**
+ * 3 Главных Факта (TL;DR Bullet Points для чтения за 15 секунд)
+ */
+function extractThreeFacts(it) {
+  var title = it.titleRu || it.title || '';
+  var desc = it.descRu || it.desc || '';
+  var full = it.fullTextRu || it.fullText || '';
+  var combined = (title + '. ' + desc + ' ' + full).trim();
+
+  // Разбиение на предложения
+  var rawSentences = combined
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map(function(s) { return s.trim(); })
+    .filter(function(s) { return s.length > 20 && !/^(читайте также|подробнее|источник)/i.test(s); });
+
+  // 1. Суть события (Что произошло?)
+  var fact1 = title;
+  if (rawSentences.length > 1 && rawSentences[1].length > 30) {
+    fact1 = rawSentences[0] || title;
+  }
+
+  // 2. Ключевые детали и цифры (поиск процентов, чисел, валюты, дат)
+  var fact2 = '';
+  var numPattern = /\b(?:\d+[\d\s.,]*%?|\d+\s*(?:млн|млрд|трлн|тыс|руб|долл|\$|€|₽|лет|года|человек|процентов))\b/i;
+  for (var i = 1; i < rawSentences.length; i++) {
+    if (numPattern.test(rawSentences[i])) {
+      fact2 = rawSentences[i];
+      break;
+    }
+  }
+  if (!fact2 && rawSentences.length > 1) {
+    fact2 = rawSentences[1];
+  } else if (!fact2) {
+    fact2 = desc || 'Ключевые параметры события уточняются источником.';
+  }
+
+  // 3. Контекст и последствия (Что это значит?)
+  var fact3 = '';
+  var ctxPattern = /(?:в связи с|потому что|это позволит|в результате|по словам|отметил|добавил|ожидается|эксперты|будет|планируется|ранее)/i;
+  for (var j = 2; j < rawSentences.length; j++) {
+    if (rawSentences[j] !== fact2 && ctxPattern.test(rawSentences[j])) {
+      fact3 = rawSentences[j];
+      break;
+    }
+  }
+  if (!fact3 && rawSentences.length > 2 && rawSentences[2] !== fact2) {
+    fact3 = rawSentences[2];
+  } else if (!fact3) {
+    fact3 = 'Событие оказывает прямое влияние на информационную повестку дня.';
+  }
+
+  function trimFact(s, max) {
+    s = s.replace(/^[•\s—–-]+/, '').trim();
+    if (s.length > max) return s.slice(0, max - 1) + '…';
+    return s;
+  }
+
+  return [
+    { num: 1, label: 'Суть события', text: trimFact(fact1, 160) },
+    { num: 2, label: 'Детали и цифры', text: trimFact(fact2, 170) },
+    { num: 3, label: 'Контекст и значение', text: trimFact(fact3, 170) }
+  ];
+}
+
+/**
+ * Хроника развития сюжета (Story Timeline)
+ */
+function buildStoryTimeline(it) {
+  var items = [];
+  var hasCluster = (it.clusterCount && it.clusterCount > 1) || (it.alsoSources && it.alsoSources.length > 0);
+  if (!hasCluster) return items;
+
+  var related = [];
+  var titleWords = (it.titleRu || it.title || '').toLowerCase().match(/[a-zа-я0-9]{4,}/g) || [];
+  for (var k = 0; k < state.items.length; k++) {
+    var candidate = state.items[k];
+    if (candidate.id === it.id) continue;
+    if (candidate.clusterId && it.clusterId && candidate.clusterId === it.clusterId) {
+      related.push(candidate);
+      continue;
+    }
+    var candWords = (candidate.titleRu || candidate.title || '').toLowerCase();
+    var matchCount = 0;
+    for (var w = 0; w < titleWords.length; w++) {
+      if (candWords.indexOf(titleWords[w]) >= 0) matchCount++;
+    }
+    if (matchCount >= 3) {
+      related.push(candidate);
+    }
+  }
+
+  if (related.length > 0) {
+    var allStories = [it].concat(related);
+    allStories.sort(function(a, b) { return a.date - b.date; });
+    for (var s = 0; s < Math.min(4, allStories.length); s++) {
+      var itemS = allStories[s];
+      items.push({
+        src: itemS.src,
+        time: relTime(itemS.date),
+        title: itemS.titleRu || itemS.title,
+        isCurrent: itemS.id === it.id
+      });
+    }
+  } else if (it.alsoSources && it.alsoSources.length > 0) {
+    items.push({
+      src: it.src,
+      time: relTime(it.date),
+      title: 'Первое сообщение и подтверждение фактов',
+      isCurrent: true
+    });
+    for (var a = 0; a < Math.min(2, it.alsoSources.length); a++) {
+      items.push({
+        src: it.alsoSources[a],
+        time: 'Позже',
+        title: 'Официальные комментарии и развитие ситуации',
+        isCurrent: false
+      });
+    }
+  }
+  return items;
+}
+
 /* ═══ RENDER (Isolated Bookmarks vs Feed, Safe Attributes, Bento Grid) ═══ */
 function renderFeed() {
   var feed = document.getElementById('news-feed');
@@ -529,8 +718,14 @@ function renderFeed() {
     var top = (state.sort === 'hot' && i === 0 && !state.query.trim());
     var isForeign = (it.lang === 'en' || !hasRussianText(it.title));
     var translated = isForeign && hasRussianText(it.titleRu);
-    var displayTitle = (translated ? it.titleRu : it.title);
+    var rawTitle = (translated ? it.titleRu : it.title);
     var displayDesc = (translated && hasRussianText(it.descRu) ? it.descRu : (it.descRu || it.desc));
+
+    // De-Clickbait AI
+    var cb = detectAndCleanClickbait(rawTitle, displayDesc);
+    var displayTitle = cb.cleanTitle;
+    var cleanBadge = cb.isClickbait ? '<span class="badge badge-clean" title="Оригинал: ' + escHtml(cb.origTitle) + '">✨ Без кликбейта</span>' : '';
+
     var hrefUrl = escHtml(safeUrl(it.link));
     var imgUrl = it.img ? escHtml(safeUrl(it.img)) : '';
     var hasCluster = it.clusterCount && it.clusterCount > 1;
@@ -542,7 +737,8 @@ function renderFeed() {
           '<div class="card-source">' +
             '<span class="badge badge-source">' + escHtml(it.src) + '</span>' +
             (hasCluster ? '<span class="badge badge-cluster">🔥 Сюжет · ' + Number(it.clusterCount) + ' ист.</span>' : '') +
-            (isForeign ? '<span class="badge ' + (translated ? 'badge-translated' : 'badge-lang') + '">' + (translated ? 'RU Перевод' : 'EN') + '</span>' : '') +
+            (isForeign ? '<span class="badge badge-translated">RU Перевод</span>' : '') +
+            cleanBadge +
           '</div>' +
           '<span class="card-time">' + escHtml(relTime(it.date)) + '</span>' +
         '</div>' +
@@ -558,7 +754,6 @@ function renderFeed() {
       '<div class="card-actions">' +
         '<div class="actions-left">' +
           '<button type="button" class="act" data-action="reader" data-id="' + escHtml(it.id) + '" aria-label="Быстрая сводка статьи">📖 Сводка</button>' +
-          (isForeign ? '<button type="button" class="act act-lang" data-action="lang" data-id="' + escHtml(it.id) + '" data-showing="' + (translated ? 'ru' : 'en') + '">' + (translated ? 'EN Оригинал' : 'RU Перевод') + '</button>' : '') +
           '<button type="button" class="act' + (bm ? ' active' : '') + '" data-action="bookmark" data-id="' + escHtml(it.id) + '" aria-pressed="' + (bm ? 'true' : 'false') + '">' + (bm ? '⭐ Сохранено' : '☆ В закладки') + '</button>' +
           '<button type="button" class="act" data-action="share" data-id="' + escHtml(it.id) + '" aria-label="Поделиться ссылкой">🔗</button>' +
         '</div>' +
@@ -708,6 +903,8 @@ function openReaderModal(id) {
 function renderReaderModal(it) {
   var metaEl = document.getElementById('reader-meta');
   var titleEl = document.getElementById('reader-title');
+  var tldrEl = document.getElementById('reader-tldr');
+  var tlEl = document.getElementById('reader-timeline');
   var bodyEl = document.getElementById('reader-body');
   var vpnEl = document.getElementById('reader-vpn-note');
   var actEl = document.getElementById('reader-actions');
@@ -738,12 +935,70 @@ function renderReaderModal(it) {
     }
   }
 
+  // De-Clickbait for Reader Modal title
+  var cb = detectAndCleanClickbait(titleTxt, bodyTxt);
+  var cleanBadge = cb.isClickbait ? '<span class="badge badge-clean" title="Оригинал: ' + escHtml(cb.origTitle) + '">✨ Без кликбейта</span>' : '';
+
   if (metaEl) {
     metaEl.innerHTML = '<span class="badge badge-source">' + escHtml(it.src) + '</span>' +
       (isForeign ? '<span class="badge ' + (isViewRu ? 'badge-translated' : 'badge-lang') + '">' + (isViewRu ? 'RU Перевод' : 'EN Оригинал') + '</span>' : '') +
+      cleanBadge +
       '<span class="card-time">' + escHtml(relTime(it.date)) + '</span>';
   }
-  titleEl.textContent = titleTxt;
+  titleEl.textContent = cb.cleanTitle;
+
+  // 1. Render «3 главных факта» (TL;DR 15-sec Reader)
+  if (tldrEl) {
+    var facts = extractThreeFacts(it);
+    var tldrHtml = '<div class="tldr-box">' +
+      '<div class="tldr-head">' +
+        '<span class="tldr-badge">⚡ 3 главных факта</span>' +
+        '<span class="tldr-time">Чтение за 15 секунд</span>' +
+      '</div>' +
+      '<div class="tldr-items">';
+    for (var f = 0; f < facts.length; f++) {
+      tldrHtml += '<div class="tldr-item">' +
+        '<span class="tldr-num">' + facts[f].num + '</span>' +
+        '<div class="tldr-content">' +
+          '<div class="tldr-label">' + escHtml(facts[f].label) + '</div>' +
+          '<div class="tldr-text">' + escHtml(facts[f].text) + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    tldrHtml += '</div></div>';
+    tldrEl.innerHTML = tldrHtml;
+  }
+
+  // 2. Render Story Timeline (Хроника развития сюжета)
+  if (tlEl) {
+    var timeline = buildStoryTimeline(it);
+    if (timeline.length > 0) {
+      var tlHtml = '<div class="timeline-box">' +
+        '<div class="timeline-head">' +
+          '<span class="timeline-badge">⏱ Хроника сюжета</span>' +
+          '<span class="timeline-count">' + timeline.length + ' этапа развития</span>' +
+        '</div>' +
+        '<div class="timeline-items">';
+      for (var t = 0; t < timeline.length; t++) {
+        tlHtml += '<div class="timeline-item">' +
+          '<div class="timeline-marker' + (timeline[t].isCurrent ? ' active' : '') + '"></div>' +
+          '<div class="timeline-body">' +
+            '<div class="timeline-meta">' +
+              '<span class="timeline-src">' + escHtml(timeline[t].src) + '</span> · <span class="timeline-time">' + escHtml(timeline[t].time) + '</span>' +
+            '</div>' +
+            '<div class="timeline-title">' + escHtml(timeline[t].title) + '</div>' +
+          '</div>' +
+        '</div>';
+      }
+      tlHtml += '</div></div>';
+      tlEl.innerHTML = tlHtml;
+      tlEl.style.display = 'block';
+    } else {
+      tlEl.innerHTML = '';
+      tlEl.style.display = 'none';
+    }
+  }
+
   bodyEl.textContent = bodyTxt;
   if (vpnEl) vpnEl.style.display = it.vpnHint ? 'block' : 'none';
 
