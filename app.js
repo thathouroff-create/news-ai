@@ -316,11 +316,9 @@ function autoTranslateItems(items) {
           var tEl = card.querySelector('.card-title');
           var dEl = card.querySelector('.card-desc');
           var bEl = card.querySelector('.badge-lang, .badge-translated');
-          var btnLang = card.querySelector('.act-lang');
           if (tEl && it.titleRu) tEl.textContent = it.titleRu;
           if (dEl && it.descRu) dEl.textContent = it.descRu;
           if (bEl) { bEl.className = 'badge badge-translated'; bEl.textContent = 'RU Перевод'; }
-          if (btnLang) { btnLang.setAttribute('data-showing', 'ru'); btnLang.textContent = 'EN Оригинал'; }
         }
       });
     })).then(function() {
@@ -1497,10 +1495,19 @@ function dismissPwaBanner() {
   try { sessionStorage.setItem('pwa_d', '1'); } catch (e) {}
 }
 
-/* ═══ SERVICE WORKER REGISTRATION ═══ */
+/* ═══ SERVICE WORKER REGISTRATION & AUTO-UPDATE ═══ */
 if ('serviceWorker' in navigator) {
+  var refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js').catch(function() {});
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      reg.update();
+    }).catch(function() {});
   });
 }
 
