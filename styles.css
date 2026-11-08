@@ -237,6 +237,7 @@ a{color:inherit;text-decoration:none}
 .badge-cluster{background:rgba(251,191,36,.15);color:var(--c-warning)}
 .badge-lang{background:rgba(248,113,113,.14);color:var(--c-danger);font-size:.6rem}
 .badge-translated{background:rgba(52,211,153,.14);color:var(--c-success);font-size:.6rem}
+.badge-clean{background:rgba(129,140,248,.16);color:var(--c-accent2);border:1px solid rgba(129,140,248,.32);font-size:.62rem;cursor:help;display:inline-flex;align-items:center;gap:3px}
 .card-time{font-size:.68rem;font-weight:600;color:var(--c-text3);white-space:nowrap}
 
 /* Card body */
@@ -396,6 +397,50 @@ a{color:inherit;text-decoration:none}
 /* Instant Reader Modal */
 .reader-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .reader-title{font-size:calc(1.08rem * var(--font-scale));font-weight:800;line-height:1.35;margin-bottom:12px;overflow-wrap:anywhere}
+
+/* ── 3 Key Facts (TL;DR 15-sec Reader) ── */
+.tldr-box{
+  background:var(--c-surface2);border:1px solid var(--c-border);
+  border-left:3px solid var(--c-accent);border-radius:12px;
+  padding:12px;margin-bottom:14px;
+}
+.tldr-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.tldr-badge{font-size:.74rem;font-weight:800;color:var(--c-accent);display:inline-flex;align-items:center;gap:5px}
+.tldr-time{font-size:.66rem;font-weight:600;color:var(--c-text3)}
+.tldr-items{display:flex;flex-direction:column;gap:9px}
+.tldr-item{display:flex;gap:10px;align-items:flex-start}
+.tldr-num{
+  width:20px;height:20px;border-radius:50%;background:var(--c-accent-soft);
+  color:var(--c-accent);font-size:.68rem;font-weight:800;
+  display:grid;place-items:center;flex-shrink:0;margin-top:2px;
+}
+.tldr-content{flex:1;min-width:0}
+.tldr-label{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--c-text3);margin-bottom:2px}
+.tldr-text{font-size:calc(.83rem * var(--font-scale));color:var(--c-text);line-height:1.44}
+
+/* ── Story Timeline (Хроника развития сюжета) ── */
+.timeline-box{
+  background:var(--c-surface2);border:1px solid var(--c-border);
+  border-radius:12px;padding:12px;margin-bottom:14px;
+}
+.timeline-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.timeline-badge{font-size:.74rem;font-weight:800;color:var(--c-warning);display:inline-flex;align-items:center;gap:5px}
+.timeline-count{font-size:.66rem;font-weight:600;color:var(--c-text3)}
+.timeline-items{position:relative;padding-left:18px;display:flex;flex-direction:column;gap:10px}
+.timeline-items::before{
+  content:'';position:absolute;left:5px;top:6px;bottom:6px;width:2px;
+  background:var(--c-border);
+}
+.timeline-item{position:relative;display:flex;flex-direction:column;gap:2px}
+.timeline-marker{
+  position:absolute;left:-18px;top:4px;width:12px;height:12px;
+  border-radius:50%;background:var(--c-surface);border:2px solid var(--c-accent);
+}
+.timeline-marker.active{border-color:var(--c-warning);background:var(--c-warning)}
+.timeline-meta{font-size:.66rem;color:var(--c-text3);font-weight:600}
+.timeline-src{color:var(--c-accent);font-weight:700}
+.timeline-title{font-size:calc(.80rem * var(--font-scale));color:var(--c-text);line-height:1.36;font-weight:600}
+
 .reader-body{
   font-size:calc(.92rem * var(--font-scale));color:var(--c-text2);line-height:1.6;
   margin-bottom:14px;white-space:pre-line;overflow-wrap:anywhere;

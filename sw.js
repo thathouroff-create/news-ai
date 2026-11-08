@@ -1,9 +1,9 @@
-const CACHE_NAME = 'news-ai-v4.0';
+const CACHE_NAME = 'news-ai-v4.2';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=4.0',
-  './app.js?v=4.0',
+  './styles.css?v=4.2',
+  './app.js?v=4.2',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
