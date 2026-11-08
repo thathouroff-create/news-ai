@@ -38,7 +38,10 @@ var FEEDS = {
   ],
   TECH: [
     { name: 'Habr',          url: 'https://habr.com/ru/rss/best/daily/?fl=ru',         lang: 'ru', w: 1.30 },
-    { name: '3DNews',        url: 'https://3dnews.ru/news/rss/',                       lang: 'ru', w: 1.25 }
+    { name: '3DNews',        url: 'https://3dnews.ru/news/rss/',                       lang: 'ru', w: 1.25 },
+    { name: 'The Verge',     url: 'https://www.theverge.com/rss/index.xml',            lang: 'en', w: 1.35 },
+    { name: 'Ars Technica',  url: 'https://feeds.arstechnica.com/arstechnica/index',   lang: 'en', w: 1.25 },
+    { name: 'TechCrunch',    url: 'https://techcrunch.com/feed/',                      lang: 'en', w: 1.20 }
   ],
   ECONOMY: [
     { name: 'Ведомости',     url: 'https://www.vedomosti.ru/rss/issue',                lang: 'ru', w: 1.40 },
@@ -48,11 +51,17 @@ var FEEDS = {
   ],
   SCIENCE: [
     { name: 'N+1',           url: 'https://nplus1.ru/rss',                             lang: 'ru', w: 1.40 },
-    { name: 'Naked Science', url: 'https://naked-science.ru/feed',                     lang: 'ru', w: 1.20 }
+    { name: 'Naked Science', url: 'https://naked-science.ru/feed',                     lang: 'ru', w: 1.20 },
+    { name: 'Phys.org',      url: 'https://phys.org/rss-feed/',                        lang: 'en', w: 1.35 },
+    { name: 'Nature',        url: 'https://www.nature.com/nature.rss',                 lang: 'en', w: 1.30 },
+    { name: 'ScienceDaily',  url: 'https://www.sciencedaily.com/rss/top/science.xml',  lang: 'en', w: 1.25 }
   ],
   GAMES: [
     { name: 'StopGame',      url: 'https://rss.stopgame.ru/rss_news.xml',              lang: 'ru', w: 1.35 },
-    { name: '3DNews Игры',   url: 'https://3dnews.ru/games/rss/',                      lang: 'ru', w: 1.20 }
+    { name: '3DNews Игры',   url: 'https://3dnews.ru/games/rss/',                      lang: 'ru', w: 1.20 },
+    { name: 'PC Gamer',      url: 'https://www.pcgamer.com/rss/',                      lang: 'en', w: 1.35 },
+    { name: 'Eurogamer',     url: 'https://www.eurogamer.net/feed/news',               lang: 'en', w: 1.25 },
+    { name: 'Rock Paper Shotgun', url: 'https://www.rockpapershotgun.com/feed',        lang: 'en', w: 1.20 }
   ]
 };
 
@@ -83,6 +92,7 @@ var state = {
   items: [],
   bookmarks: safeJSON(localStorage.getItem('news_bm'), []),
   transCache: safeJSON(localStorage.getItem('news_tr'), {}),
+  tabScrolls: {}, // Map<category, number>: remembers scroll position per tab. If tab not visited yet, defaults to 0 (start from top!)
   theme: localStorage.getItem('news_theme') || 'dark',
   fontScale: (!isNaN(parsedFs) && parsedFs >= 0.85 && parsedFs <= 1.35) ? parsedFs : 1,
   deferredPrompt: null,
@@ -92,6 +102,7 @@ var state = {
   selectedCur: 'usd',
   weather: null,
   readerItemId: null,
+  readerLang: 'ru', // default Reader modal view language ('ru' or 'en')
   loading: false
 };
 
@@ -190,76 +201,200 @@ function showToast(msg) {
   el._t = setTimeout(function() { el.classList.remove('show'); }, 2200);
 }
 
-/* ═══ CLIENT TRANSLATION FALLBACK (With 300-entry LRU Cap) ═══ */
+/* ═══ MULTI-TIER TRANSLATION ENGINE (GTX + MyMemory + Paragraph Chunking) ═══ */
+function hasRussianText(str) {
+  return str ? /[а-яё]/i.test(String(str)) : false;
+}
+
 function saveTransCache(key, val) {
+  if (!key || !val) return;
   state.transCache[key] = val;
   var keys = Object.keys(state.transCache);
-  if (keys.length > 300) {
-    for (var i = 0; i < keys.length - 250; i++) delete state.transCache[keys[i]];
+  if (keys.length > 500) {
+    for (var i = 0; i < keys.length - 400; i++) delete state.transCache[keys[i]];
   }
   safeStorageSet('news_tr', JSON.stringify(state.transCache));
 }
 
-function translate(text) {
+function translateChunk(text) {
   if (!text || !text.trim()) return Promise.resolve(text);
-  if (state.transCache[text]) return Promise.resolve(state.transCache[text]);
-  return fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=' + encodeURIComponent(text))
+  if (state.transCache[text] && hasRussianText(state.transCache[text])) {
+    return Promise.resolve(state.transCache[text]);
+  }
+
+  // Tier 1: Google GTX Translate API
+  var gtxUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ru&dt=t&q=' + encodeURIComponent(text);
+  return fetch(gtxUrl)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d && d[0]) {
         var tr = d[0].map(function(x) { return x[0]; }).join('');
-        saveTransCache(text, tr);
-        return tr;
+        if (hasRussianText(tr)) {
+          saveTransCache(text, tr);
+          return tr;
+        }
       }
-      return text;
+      throw new Error('GTX empty or non-russian');
     })
-    .catch(function() { return text; });
+    .catch(function() {
+      // Tier 2: MyMemory API Fallback
+      var mmUrl = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text.slice(0, 450)) + '&langpair=en|ru';
+      return fetch(mmUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d && d.responseData && d.responseData.translatedText) {
+            var tr = d.responseData.translatedText;
+            if (hasRussianText(tr)) {
+              saveTransCache(text, tr);
+              return tr;
+            }
+          }
+          return text;
+        })
+        .catch(function() { return text; });
+    });
+}
+
+function translate(text) {
+  if (!text || !text.trim()) return Promise.resolve(text);
+  if (hasRussianText(text) && !/[a-zA-Z]{5,}/.test(text)) return Promise.resolve(text);
+  if (state.transCache[text] && hasRussianText(state.transCache[text])) {
+    return Promise.resolve(state.transCache[text]);
+  }
+
+  // If text is long (e.g. Reader fullText), split by sentences / chunks and translate in parallel
+  if (text.length > 380) {
+    var parts = text.split(/(?<=[.!?\n])\s+/);
+    var chunks = [];
+    var curr = '';
+    for (var i = 0; i < parts.length; i++) {
+      if ((curr + ' ' + parts[i]).length > 320) {
+        if (curr) chunks.push(curr);
+        curr = parts[i];
+      } else {
+        curr = curr ? (curr + ' ' + parts[i]) : parts[i];
+      }
+    }
+    if (curr) chunks.push(curr);
+
+    return Promise.all(chunks.map(translateChunk))
+      .then(function(resParts) {
+        var combined = resParts.join(' ');
+        saveTransCache(text, combined);
+        return combined;
+      });
+  }
+
+  return translateChunk(text);
 }
 
 function autoTranslateItems(items) {
-  var enItems = items.filter(function(it) { return it.lang === 'en' && !it.titleRu; });
+  if (!items || !items.length) return;
+  // Translate foreign items where titleRu doesn't yet contain clean Russian
+  var enItems = items.filter(function(it) {
+    var isForeign = (it.lang === 'en' || !hasRussianText(it.title));
+    return isForeign && !hasRussianText(it.titleRu);
+  });
   if (!enItems.length) return;
 
   function processBatch(startIdx) {
     if (startIdx >= enItems.length) return;
     var batch = enItems.slice(startIdx, startIdx + 3);
     Promise.all(batch.map(function(it) {
-      return Promise.all([translate(it.title), translate(it.desc)])
-        .then(function(results) {
-          it.titleRu = results[0];
-          it.descRu = results[1];
-          it.fullTextRu = it.fullTextRu || results[1];
-          var card = document.getElementById(safeIdAttr(it.id));
-          if (card) {
-            var tEl = card.querySelector('.card-title');
-            var dEl = card.querySelector('.card-desc');
-            var bEl = card.querySelector('.badge-lang');
-            if (tEl && results[0] !== it.title) tEl.textContent = results[0];
-            if (dEl && results[1] !== it.desc) dEl.textContent = results[1];
-            if (bEl) { bEl.className = 'badge badge-translated'; bEl.textContent = 'RU Перевод'; }
-          }
-        });
+      return Promise.all([
+        translate(it.title),
+        translate(it.desc),
+        it.fullText ? translate(it.fullText) : Promise.resolve(null)
+      ]).then(function(results) {
+        if (hasRussianText(results[0])) it.titleRu = results[0];
+        if (hasRussianText(results[1])) it.descRu = results[1];
+        if (results[2] && hasRussianText(results[2])) it.fullTextRu = results[2];
+        else if (it.descRu) it.fullTextRu = it.fullTextRu || it.descRu;
+
+        var card = document.getElementById(safeIdAttr(it.id));
+        if (card) {
+          var tEl = card.querySelector('.card-title');
+          var dEl = card.querySelector('.card-desc');
+          var bEl = card.querySelector('.badge-lang, .badge-translated');
+          var btnLang = card.querySelector('.act-lang');
+          if (tEl && it.titleRu) tEl.textContent = it.titleRu;
+          if (dEl && it.descRu) dEl.textContent = it.descRu;
+          if (bEl) { bEl.className = 'badge badge-translated'; bEl.textContent = 'RU Перевод'; }
+          if (btnLang) { btnLang.setAttribute('data-showing', 'ru'); btnLang.textContent = 'EN Оригинал'; }
+        }
+      });
     })).then(function() {
-      setTimeout(function() { processBatch(startIdx + 3); }, 180);
+      setTimeout(function() { processBatch(startIdx + 3); }, 150);
     });
   }
   processBatch(0);
 }
 
-/* ═══ SMART RANKING (Hot Score + Cluster Boost) ═══ */
+/* ═══ SMART RANKING 2.0 (Resonance, Cluster Multipliers & Topic Boost) ═══ */
+var RE_HOT_TOPICS = {
+  // Финансы, кошелёк, курсы валют (первейший интерес людей)
+  wallet: /(?:рубл|доллар|евро|валют|курс|ставк|цб\b|инфляц|налог|выплат|пенси|пособи|ипотек|цен[ыа]|тариф|бензин|зарплат|банк)/i,
+  // Главные события, политика, указы, срочные новости, ЧП
+  breaking: /(?:срочн|экстрен|указ|закон|путин|трамп|правительств|госдум|суд|запрет|сбой|чп\b|взрыв|авари|теракт|погиб|решен|санкци)/i,
+  // Технологии и ИИ
+  tech: /(?:искусственн.*интеллект|нейросет|chatgpt|openai|apple|google|microsoft|telegram|сбой.*связ|роскомнадзор|процессор|квантов)/i,
+  // Игры
+  gaming: /(?:gta|steam|анонс|трейлер|релиз|playstation|xbox|valve|ведьмак|перенос)/i,
+  // Наука
+  science: /(?:открыт|телескоп|космос|марс|лун[ае]|лекарств|вакцин|рак[ае]|генн)/i
+};
+
 function hotScore(it) {
-  var hrs = Math.max(0.15, (Date.now() - it.date) / 3600000);
-  var s = (it.w || 1) / Math.pow(hrs + 1.5, 1.15) * 100;
-  if (it.img) s *= 1.15;
-  if (it.desc && it.desc.length > 50) s *= 1.08;
-  if (it.clusterCount && it.clusterCount > 1) s *= (1 + 0.22 * (it.clusterCount - 1));
-  return s;
+  var hrs = Math.max(0.1, (Date.now() - it.date) / 3600000);
+
+  // 1. Мульти-источниковый резонанс (если новость написали 2, 3 или 4+ разных СМИ — это топ дня)
+  var clusterMul = 1.0;
+  if (it.clusterCount && it.clusterCount > 1) {
+    clusterMul = it.clusterCount === 2 ? 2.5 : (it.clusterCount === 3 ? 4.0 : 5.5);
+  }
+
+  // 2. Тематический резонанс (волнующие людей темы)
+  var textToCheck = ((it.titleRu || it.title || '') + ' ' + (it.descRu || it.desc || '')).toLowerCase();
+  var topicMul = 1.0;
+  if (RE_HOT_TOPICS.wallet.test(textToCheck)) topicMul *= 1.45;
+  if (RE_HOT_TOPICS.breaking.test(textToCheck)) topicMul *= 1.40;
+  if (RE_HOT_TOPICS.tech.test(textToCheck)) topicMul *= 1.25;
+  if (RE_HOT_TOPICS.gaming.test(textToCheck)) topicMul *= 1.25;
+  if (RE_HOT_TOPICS.science.test(textToCheck)) topicMul *= 1.25;
+
+  // 3. Репутационный вес источника
+  var weight = it.w || 1.0;
+
+  // 4. Медиа и глубина материала
+  var mediaMul = 1.0;
+  if (it.img) mediaMul *= 1.15;
+  if (it.desc && it.desc.length > 50) mediaMul *= 1.08;
+
+  // 5. Плавное затухание по времени:
+  // Для топовых сюжетов (кластеры или высокий резонанс) новость не тонет моментально
+  var isHot = clusterMul > 1.5 || topicMul > 1.3;
+  var decay = isHot ? Math.pow(hrs + 2.2, 0.85) : Math.pow(hrs + 1.2, 1.15);
+
+  return (weight * clusterMul * topicMul * mediaMul / decay) * 100;
 }
 
 /* ═══ FEED LOADING ═══ */
 function loadFeed(cat, force) {
+  var prevCat = state.cat;
   cat = cat || state.cat || 'ALL';
   vibe(10);
+
+  // 1. Remember scroll position of previous tab
+  if (prevCat && typeof window !== 'undefined') {
+    var curScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    state.tabScrolls[prevCat] = curScrollY;
+  }
+
+  // 2. If force refresh (manual refresh button or pull-to-refresh), reset scroll for this tab
+  if (force) {
+    delete state.tabScrolls[cat];
+  }
+
   state.cat = cat;
 
   var tabs = document.querySelectorAll('.tab');
@@ -392,10 +527,10 @@ function renderFeed() {
     var it = sourceArray[i];
     var bm = isBookmarked(it.id);
     var top = (state.sort === 'hot' && i === 0 && !state.query.trim());
-    var isEn = it.lang === 'en';
-    var displayTitle = it.titleRu || it.title;
-    var displayDesc = it.descRu || it.desc;
-    var translated = isEn && it.titleRu && it.titleRu !== it.title;
+    var isForeign = (it.lang === 'en' || !hasRussianText(it.title));
+    var translated = isForeign && hasRussianText(it.titleRu);
+    var displayTitle = (translated ? it.titleRu : it.title);
+    var displayDesc = (translated && hasRussianText(it.descRu) ? it.descRu : (it.descRu || it.desc));
     var hrefUrl = escHtml(safeUrl(it.link));
     var imgUrl = it.img ? escHtml(safeUrl(it.img)) : '';
     var hasCluster = it.clusterCount && it.clusterCount > 1;
@@ -407,7 +542,7 @@ function renderFeed() {
           '<div class="card-source">' +
             '<span class="badge badge-source">' + escHtml(it.src) + '</span>' +
             (hasCluster ? '<span class="badge badge-cluster">🔥 Сюжет · ' + Number(it.clusterCount) + ' ист.</span>' : '') +
-            (isEn ? '<span class="badge ' + (translated ? 'badge-translated' : 'badge-lang') + '">' + (translated ? 'RU Перевод' : 'EN') + '</span>' : '') +
+            (isForeign ? '<span class="badge ' + (translated ? 'badge-translated' : 'badge-lang') + '">' + (translated ? 'RU Перевод' : 'EN') + '</span>' : '') +
           '</div>' +
           '<span class="card-time">' + escHtml(relTime(it.date)) + '</span>' +
         '</div>' +
@@ -423,7 +558,7 @@ function renderFeed() {
       '<div class="card-actions">' +
         '<div class="actions-left">' +
           '<button type="button" class="act" data-action="reader" data-id="' + escHtml(it.id) + '" aria-label="Быстрая сводка статьи">📖 Сводка</button>' +
-          (isEn ? '<button type="button" class="act act-lang" data-action="lang" data-id="' + escHtml(it.id) + '" data-showing="' + (translated ? 'ru' : 'en') + '">' + (translated ? 'EN Оригинал' : 'RU Перевод') + '</button>' : '') +
+          (isForeign ? '<button type="button" class="act act-lang" data-action="lang" data-id="' + escHtml(it.id) + '" data-showing="' + (translated ? 'ru' : 'en') + '">' + (translated ? 'EN Оригинал' : 'RU Перевод') + '</button>' : '') +
           '<button type="button" class="act' + (bm ? ' active' : '') + '" data-action="bookmark" data-id="' + escHtml(it.id) + '" aria-pressed="' + (bm ? 'true' : 'false') + '">' + (bm ? '⭐ Сохранено' : '☆ В закладки') + '</button>' +
           '<button type="button" class="act" data-action="share" data-id="' + escHtml(it.id) + '" aria-label="Поделиться ссылкой">🔗</button>' +
         '</div>' +
@@ -432,6 +567,19 @@ function renderFeed() {
     '</article>';
   }
   feed.innerHTML = html;
+
+  // Restore scroll position for visited tabs, or start strictly from top (0px) for unread tabs
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(function() {
+      var savedY = state.tabScrolls[state.cat];
+      if (typeof savedY === 'number') {
+        window.scrollTo({ top: savedY, behavior: 'instant' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        state.tabScrolls[state.cat] = 0;
+      }
+    });
+  }
 }
 
 function showSkeletons() {
@@ -496,16 +644,38 @@ function toggleLang(id, btn) {
   var tEl = card.querySelector('.card-title');
   var dEl = card.querySelector('.card-desc');
   var showingRu = btn.getAttribute('data-showing') === 'ru';
+
   if (showingRu) {
     if (tEl) tEl.textContent = it.title;
     if (dEl) dEl.textContent = it.desc;
     btn.setAttribute('data-showing', 'en');
     btn.textContent = 'RU Перевод';
   } else {
-    if (tEl) tEl.textContent = it.titleRu || it.title;
-    if (dEl) dEl.textContent = it.descRu || it.desc;
-    btn.setAttribute('data-showing', 'ru');
-    btn.textContent = 'EN Оригинал';
+    if (hasRussianText(it.titleRu)) {
+      if (tEl) tEl.textContent = it.titleRu;
+      if (dEl) dEl.textContent = it.descRu || it.desc;
+      btn.setAttribute('data-showing', 'ru');
+      btn.textContent = 'EN Оригинал';
+    } else {
+      btn.textContent = '🔄 Перевод...';
+      Promise.all([
+        translate(it.title),
+        translate(it.desc),
+        it.fullText ? translate(it.fullText) : Promise.resolve(null)
+      ]).then(function(res) {
+        if (hasRussianText(res[0])) it.titleRu = res[0];
+        if (hasRussianText(res[1])) it.descRu = res[1];
+        if (res[2] && hasRussianText(res[2])) it.fullTextRu = res[2];
+        else if (it.descRu) it.fullTextRu = it.fullTextRu || it.descRu;
+
+        if (tEl && it.titleRu) tEl.textContent = it.titleRu;
+        if (dEl && it.descRu) dEl.textContent = it.descRu;
+        btn.setAttribute('data-showing', 'ru');
+        btn.textContent = 'EN Оригинал';
+        var bEl = card.querySelector('.badge-lang, .badge-translated');
+        if (bEl) { bEl.className = 'badge badge-translated'; bEl.textContent = 'RU Перевод'; }
+      });
+    }
   }
 }
 
@@ -514,8 +684,25 @@ function openReaderModal(id) {
   if (!it) return;
   vibe(12);
   state.readerItemId = id;
+  state.readerLang = 'ru'; // Instant Reader defaults to Russian translation
   renderReaderModal(it);
   openModal('reader-modal');
+
+  // If article is foreign and Russian translation isn't completed yet, trigger background translation
+  var isForeign = (it.lang === 'en' || !hasRussianText(it.title));
+  if (isForeign && !hasRussianText(it.fullTextRu)) {
+    var rawText = it.fullText || it.desc || '';
+    Promise.all([
+      hasRussianText(it.titleRu) ? Promise.resolve(it.titleRu) : translate(it.title),
+      translate(rawText)
+    ]).then(function(res) {
+      if (hasRussianText(res[0])) it.titleRu = res[0];
+      if (hasRussianText(res[1])) it.fullTextRu = res[1];
+      if (state.readerItemId === it.id && state.readerLang === 'ru') {
+        renderReaderModal(it);
+      }
+    });
+  }
 }
 
 function renderReaderModal(it) {
@@ -527,14 +714,33 @@ function renderReaderModal(it) {
   if (!titleEl || !bodyEl) return;
 
   var bm = isBookmarked(it.id);
-  var titleTxt = it.titleRu || it.title;
-  var bodyTxt = it.fullTextRu || it.fullText || it.descRu || it.desc || 'Подробный текст доступен по ссылке в источнике.';
-  if (it.lang === 'en' && it.titleRu && it.title !== it.titleRu) {
-    bodyTxt += '\n\n— Оригинал заголовка: ' + it.title;
+  var isForeign = (it.lang === 'en' || !hasRussianText(it.title));
+  var isViewRu = (state.readerLang === 'ru');
+
+  var titleTxt = '';
+  var bodyTxt = '';
+
+  if (isForeign && !isViewRu) {
+    // English original view
+    titleTxt = it.title;
+    bodyTxt = it.fullText || it.desc || 'Full text available at original source.';
+  } else {
+    // Russian translated view (or native Russian)
+    titleTxt = hasRussianText(it.titleRu) ? it.titleRu : it.title;
+    if (hasRussianText(it.fullTextRu)) {
+      bodyTxt = it.fullTextRu;
+    } else if (hasRussianText(it.descRu)) {
+      bodyTxt = it.descRu;
+    } else if (isForeign) {
+      bodyTxt = '⏳ Выполняется перевод сводки на русский язык...\n\n' + (it.fullText || it.desc || '');
+    } else {
+      bodyTxt = it.fullText || it.desc || 'Подробный текст доступен по ссылке в источнике.';
+    }
   }
 
   if (metaEl) {
     metaEl.innerHTML = '<span class="badge badge-source">' + escHtml(it.src) + '</span>' +
+      (isForeign ? '<span class="badge ' + (isViewRu ? 'badge-translated' : 'badge-lang') + '">' + (isViewRu ? 'RU Перевод' : 'EN Оригинал') + '</span>' : '') +
       '<span class="card-time">' + escHtml(relTime(it.date)) + '</span>';
   }
   titleEl.textContent = titleTxt;
@@ -543,9 +749,15 @@ function renderReaderModal(it) {
 
   if (actEl) {
     var hrefUrl = escHtml(safeUrl(it.link));
+    var langToggleBtn = isForeign ?
+      '<button type="button" class="act act-lang" data-reader-action="toggle-lang" data-id="' + escHtml(it.id) + '">' +
+        (isViewRu ? 'EN Оригинал' : 'RU Перевод') +
+      '</button>' : '';
+
     actEl.innerHTML =
       '<div class="actions-left">' +
         '<button type="button" class="act' + (bm ? ' active' : '') + '" data-reader-action="bookmark" data-id="' + escHtml(it.id) + '">' + (bm ? '⭐ Сохранено' : '☆ В закладки') + '</button>' +
+        langToggleBtn +
         '<button type="button" class="act" data-reader-action="share" data-id="' + escHtml(it.id) + '">🔗 Поделиться</button>' +
       '</div>' +
       '<a href="' + hrefUrl + '" target="_blank" rel="noopener noreferrer" class="btn-primary">Читать оригинал ↗</a>';
@@ -912,6 +1124,10 @@ function closeAllModals() {
 /* ═══ SEGMENTED CONTROL & SHORTCUT HASH ROUTING ═══ */
 function setSortMode(sortKey) {
   if (sortKey !== 'hot' && sortKey !== 'latest' && sortKey !== 'bookmarks') return;
+  var prevSortKey = state.sort;
+  if (prevSortKey && typeof window !== 'undefined') {
+    state.tabScrolls['sort_' + prevSortKey] = window.pageYOffset || document.documentElement.scrollTop || 0;
+  }
   state.sort = sortKey;
   var ctrl = document.getElementById('seg-control');
   var ind = document.getElementById('seg-indicator');
@@ -926,6 +1142,17 @@ function setSortMode(sortKey) {
     if (ind) ind.style.transform = 'translateX(' + (idx * 100) + '%)';
   }
   renderFeed();
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(function() {
+      var savedY = state.tabScrolls['sort_' + sortKey];
+      if (typeof savedY === 'number') {
+        window.scrollTo({ top: savedY, behavior: 'instant' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        state.tabScrolls['sort_' + sortKey] = 0;
+      }
+    });
+  }
 }
 
 function applyHashRoute() {
@@ -1131,9 +1358,22 @@ document.addEventListener('DOMContentLoaded', function() {
       else if (act === 'share') {
         var it = findItem(id);
         if (it) share(it.titleRu || it.title, it.link);
+      } else if (act === 'toggle-lang') {
+        var it = findItem(id);
+        if (it) {
+          state.readerLang = (state.readerLang === 'ru' ? 'en' : 'ru');
+          renderReaderModal(it);
+        }
       }
     });
   }
+
+  // Continuous scroll tracker for per-tab position memory
+  window.addEventListener('scroll', function() {
+    if (!state.loading && state.cat && state.sort !== 'bookmarks') {
+      state.tabScrolls[state.cat] = window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+  }, { passive: true });
 
   // Currency table row delegation (click + Enter/Space keyboard)
   var ratesBody = document.getElementById('rates-body');

@@ -47,7 +47,10 @@ const FEEDS = {
   ],
   TECH: [
     { id: 'habr',       name: 'Habr',          urls: ['https://habr.com/ru/rss/best/daily/?fl=ru', 'https://habr.com/ru/rss/articles/?fl=ru'],        lang: 'ru', w: 1.30 },
-    { id: '3dnews',     name: '3DNews',        urls: ['https://3dnews.ru/news/rss/'],                                                                 lang: 'ru', w: 1.25 }
+    { id: '3dnews',     name: '3DNews',        urls: ['https://3dnews.ru/news/rss/'],                                                                 lang: 'ru', w: 1.25 },
+    { id: 'theverge',   name: 'The Verge',     urls: ['https://www.theverge.com/rss/index.xml'],                                                      lang: 'en', w: 1.35, vpnHint: false },
+    { id: 'arstechnica',name: 'Ars Technica',  urls: ['https://feeds.arstechnica.com/arstechnica/index'],                                             lang: 'en', w: 1.25, vpnHint: false },
+    { id: 'techcrunch', name: 'TechCrunch',    urls: ['https://techcrunch.com/feed/'],                                                                lang: 'en', w: 1.20, vpnHint: false }
   ],
   ECONOMY: [
     { id: 'vedomosti',  name: 'Ведомости',     urls: ['https://www.vedomosti.ru/rss/issue', 'https://www.vedomosti.ru/rss/news'],                     lang: 'ru', w: 1.40 },
@@ -57,11 +60,17 @@ const FEEDS = {
   ],
   SCIENCE: [
     { id: 'nplus1',     name: 'N+1',           urls: ['https://nplus1.ru/rss', 'https://nplus1.ru/rss/feed/main'],                                    lang: 'ru', w: 1.40 },
-    { id: 'naked_sci',  name: 'Naked Science', urls: ['https://naked-science.ru/feed'],                                                               lang: 'ru', w: 1.20 }
+    { id: 'naked_sci',  name: 'Naked Science', urls: ['https://naked-science.ru/feed'],                                                               lang: 'ru', w: 1.20 },
+    { id: 'physorg',    name: 'Phys.org',      urls: ['https://phys.org/rss-feed/'],                                                                  lang: 'en', w: 1.35, vpnHint: false },
+    { id: 'nature',     name: 'Nature',        urls: ['https://www.nature.com/nature.rss'],                                                           lang: 'en', w: 1.30, vpnHint: false },
+    { id: 'sciencedaily', name: 'ScienceDaily',urls: ['https://www.sciencedaily.com/rss/top/science.xml'],                                           lang: 'en', w: 1.25, vpnHint: false }
   ],
   GAMES: [
     { id: 'stopgame',   name: 'StopGame',      urls: ['https://rss.stopgame.ru/rss_news.xml'],                                                        lang: 'ru', w: 1.35 },
-    { id: '3dnews_g',   name: '3DNews Игры',   urls: ['https://3dnews.ru/games/rss/'],                                                                lang: 'ru', w: 1.20 }
+    { id: '3dnews_g',   name: '3DNews Игры',   urls: ['https://3dnews.ru/games/rss/'],                                                                lang: 'ru', w: 1.20 },
+    { id: 'pcgamer',    name: 'PC Gamer',      urls: ['https://www.pcgamer.com/rss/'],                                                                lang: 'en', w: 1.35, vpnHint: false },
+    { id: 'eurogamer',  name: 'Eurogamer',     urls: ['https://www.eurogamer.net/feed/news'],                                                         lang: 'en', w: 1.25, vpnHint: false },
+    { id: 'rps',        name: 'Rock Paper Shotgun', urls: ['https://www.rockpapershotgun.com/feed'],                                                  lang: 'en', w: 1.20, vpnHint: false }
   ]
 };
 
@@ -191,17 +200,18 @@ async function fetchSourceWithFallback(sourceDef) {
 }
 
 async function translateTextServer(text) {
-  if (!text || !text.trim()) return text;
+  if (!text || !text.trim()) return null;
   try {
-    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=' + encodeURIComponent(text);
+    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ru&dt=t&q=' + encodeURIComponent(text.slice(0, 500));
     const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) return text;
+    if (!res.ok) return null;
     const d = await res.json();
     if (d && Array.isArray(d[0])) {
-      return d[0].map(part => part[0]).join('');
+      const translated = d[0].map(part => part[0]).join('');
+      if (/[а-яё]/i.test(translated)) return translated;
     }
   } catch {}
-  return text;
+  return null;
 }
 
 function tokenizeTitle(title) {
@@ -368,18 +378,19 @@ async function main() {
       for (const it of items) {
         if (it.lang === 'en') {
           const cached = prevTransMap.get(it.id);
-          if (cached && cached.titleRu) {
+          if (cached && cached.titleRu && /[а-яё]/i.test(cached.titleRu)) {
             it.titleRu = cached.titleRu;
             it.descRu = cached.descRu;
             it.fullTextRu = cached.fullTextRu || cached.descRu;
           } else {
-            const [tRu, dRu] = await Promise.all([
+            const [tRu, dRu, fRu] = await Promise.all([
               translateTextServer(it.title),
-              translateTextServer(it.desc)
+              translateTextServer(it.desc),
+              it.fullText ? translateTextServer(it.fullText) : Promise.resolve(null)
             ]);
             it.titleRu = tRu;
             it.descRu = dRu;
-            it.fullTextRu = dRu;
+            it.fullTextRu = fRu || dRu;
           }
         }
       }
